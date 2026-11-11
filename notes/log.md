@@ -26,3 +26,4 @@
 
 **Next**
 - Full Lift run on PhysX (15,000 iterations, seed 42) started ~11:10.
+- 2026-11-11: cloned on Brev box
