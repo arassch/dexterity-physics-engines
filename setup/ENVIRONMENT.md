@@ -35,3 +35,17 @@ Compute-only GPUs (A100, H100) can train but can't render.
 - Isaac Lab lives at `/workspace/isaaclab`; run outputs go to `/workspace/isaaclab/logs/rsl_rl/`.
 - Harmless start-up warnings: repeated `OmniHub ... Hub failed to launch`, `failed to open the default display`,
   and `_isaac_sim/setup_conda_env.sh is missing`.
+
+## Auto-stop when idle
+
+`scripts/idle_stop.sh` stops the instance (`brev stop`) once no training or playback has run for 20 minutes.
+It needs the Brev CLI inside the VS Code container (no `sudo`, so it goes in `~/bin`):
+
+```bash
+mkdir -p ~/bin /tmp/brev-cli && cd /tmp/brev-cli
+URL=$(curl -s https://api.github.com/repos/brevdev/brev-cli/releases/latest \
+  | grep browser_download_url | grep -i linux | grep -iE "amd64|x86_64" | grep "tar.gz" | head -1 | cut -d'"' -f4)
+curl -sL "$URL" | tar xz && find . -name brev -type f -exec mv {} ~/bin/ \; && chmod +x ~/bin/brev
+~/bin/brev login     # follow the link/code it prints
+~/bin/brev ls        # confirm the instance name
+```
