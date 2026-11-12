@@ -5,8 +5,8 @@ Medians over iterations 100–299 (200 iterations) of the rsl_rl log lines.
 
 | | PhysX (T8) | Newton (T9) |
 |---|---|---|
-| Run folder | `2026-11-12_11-11-43` | — |
-| Log | `~/runs/reorient_physx_300_4096envs.log` | — |
+| Run folder | `2026-11-12_11-11-43` | `2026-11-12_11-32-53` (running) |
+| Log | `~/runs/reorient_physx_300_4096envs.log` | `~/runs/reorient_newton_300_4096envs.log` |
 | Iteration time (median) | 3.19 s | — |
 | Steps per second (median) | 41,143 | — |
 | Collection time (median) | 2.911 s | — |

@@ -107,7 +107,7 @@ This file is the contract between the planning chat and the server agent.
 - result: 11 clips (PhysX 5, Newton 6), no errors; list in `results/videos.md`
 
 ### T12 · Transfer clips · Lift (policy in the other engine)
-- status: running
+- status: done
 - why: sanity-check Finding 2 (0% success across engines both ways) by eye, and the key shot for the video.
 - requires: the GPU job limits above (it waits while an exclusive task like T8 runs); start it before T9.
 - commands (record one at a time):
@@ -116,7 +116,7 @@ This file is the contract between the planning chat and the server agent.
 - clips land in `~/runs/videos/lift_physx_policy_in_newton/` and `~/runs/videos/lift_newton_policy_in_physx/`.
   Don't commit the .mp4 files. Add them to `results/videos.md`, and describe in `notes/log.md` anything the logs show
   (e.g. how many resets happen within the clip). If no video is produced, set `blocked` with the error excerpt.
-- result:
+- result: 2 clips, no errors (PhysX→Newton 556,607 B, Newton→PhysX 786,306 B); see `results/videos.md`
 
 ### T8 · Reorient timing run · PhysX · 4,096 envs (exclusive)
 - status: done
@@ -131,13 +131,13 @@ This file is the contract between the planning chat and the server agent.
 - result: median iteration 3.19 s (collection 2.91 s, learning 0.27 s), 41.1k steps/s, peak ~9.3 GB; success 0, ADR 0 at 300; 15,000 its ≈ 13.3 h ≈ $48.5; see `results/reorient_4096_timing.md`
 
 ### T9 · Reorient timing run · Newton · 4,096 envs (exclusive)
-- status: todo
+- status: running
 - requires: T8 and T12 not `running` or `todo`, and no other GPU job running (exclusive)
 - command: `scripts/train.sh reorient newton 300 --envs 4096`
 - same measurements as T8, added to `results/reorient_4096_timing.md` as a second column.
 - **then stop and ask:** put the two full-run estimates under "Needs a human" in STATUS.md. Do not start T10 or T11;
   the planning chat decides iterations and budget from these numbers.
-- run_folder:
+- run_folder: `2026-11-12_11-32-53` (log `~/runs/reorient_newton_300_4096envs.log`)
 - result:
 
 ### T10 · Reorient · PhysX · 4,096 envs (full run)
@@ -156,3 +156,4 @@ This file is the contract between the planning chat and the server agent.
 - 2026-11-12 10:56 UTC: T6 cells 2–4 started in parallel (new job rule); all four done by 10:54 data timestamps, results written, set `done`. Started T7 command 1 (lift physx videos).
 - 2026-11-12 11:13 UTC: T7 commands 1–2 found finished; ran command 3 (Lift Newton resume, model_14999); 11 clips, set `done`. GPU idle, so started T8 (reorient physx 300, 4,096 envs, exclusive); iterating.
 - 2026-11-12 11:31 UTC: T8 finished normally (931.65 s); backed up configs + final excerpt (no checkpoint, timing run), wrote `results/reorient_4096_timing.md`, set `done`. Started T12 command 1 (PhysX policy in Newton).
+- 2026-11-12 11:36 UTC: T12 both clips recorded (no errors), set `done`. GPU idle, so started T9 (reorient newton 300, 4,096 envs, exclusive); iterating.

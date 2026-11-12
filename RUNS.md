@@ -13,6 +13,7 @@ Output folders are under `/workspace/isaaclab/logs/rsl_rl/dexsuite_kuka_allegro/
 | 5 | Reorient | PhysX | 15,000 | `2026-11-11_23-23-11` | Wed 23:21 | Done (Thu ~10:02, 38,365 s) | ~4% (mean of last 500 its: 4.2%) |
 | 6 | Reorient | Newton | 15,000 (stopped at 3,315 by plan) | `2026-11-12_09-31-46` | Thu ~09:31 | Stopped Thu 10:49 (1 h 16 min) | 0% (abnormal_robot 0.10, ADR 0, reward 8.1, 1.09 s/it) |
 | 7 | Reorient | PhysX | 300 (timing, **4,096 envs**, T8) | `2026-11-12_11-11-43` | Thu 11:11 | Done, 931.65 s (15.5 min) | Median iteration 3.19 s, 41.1k steps/s, ~9.3 GB; success 0, ADR 0, abnormal_robot 0.010, mean reward 3.63 at 299 |
+| 8 | Reorient | Newton | 300 (timing, **4,096 envs**, T9) | `2026-11-12_11-32-53` | Thu 11:32 | Running | — |
 
 Runs 2–3 and 4–5 shared one GPU, so their wall-clock times are not a fair speed comparison.
 
@@ -28,6 +29,7 @@ scripts/train.sh lift newton 5000 --resume 2026-11-11_13-06-41 model_10000.pt   
 scripts/train.sh reorient physx          # 5
 scripts/train.sh reorient newton         # 6
 scripts/train.sh reorient physx 300 --envs 4096   # 7
+scripts/train.sh reorient newton 300 --envs 4096  # 8
 ```
 
 The script expands to the command actually typed for each run, for example run 3:

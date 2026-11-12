@@ -26,4 +26,22 @@ was trained in. Clips are on the server only (`~/runs/videos/lift_<engine>/`), n
 - The Newton clips from 3,000 on are ~40% smaller than the PhysX ones (≈270–300 KB vs ≈410–490 KB). File size only
   says the frames compress differently (less motion or a different scene look); someone needs to watch the clips
   before reading anything into it.
-- These clips are in-engine only. No clip of a policy run in the *other* engine was recorded (not in PLAN.md).
+- These clips are in-engine only. The cross-engine clips are in the next section (T12).
+
+## Transfer clips · Lift policy in the other engine (T12)
+
+Same settings as above (4 envs, 360 steps, seed 42), but the final policy plays in the engine it was *not* trained in.
+
+| Trained in → played in | Run folder | Checkpoint | Clip | Size (bytes) |
+|---|---|---|---|---|
+| PhysX → Newton | `2026-11-11_11-08-26` | 14999 | `lift_physx_policy_in_newton/model_14999.mp4` | 556,607 |
+| Newton → PhysX | `2026-11-11_23-21-33` (resume) | 14999 | `lift_newton_policy_in_physx/model_14999.mp4` | 786,306 |
+
+- Both recorded without a Traceback (11:30–11:32 UTC). The PhysX → Newton log shows the Newton manager loading, so the
+  engine switch took effect.
+- The play logs don't print resets or terminations, so the number of resets within each clip can't be read from them;
+  T6 suggests PhysX → Newton resets after ~23 control steps (98% `abnormal_robot`), which would be ~15 resets in
+  a 360-step clip. Someone needs to watch the clips to confirm.
+- Both transfer clips are larger than the same policy in its own engine (PhysX policy: 556,607 vs 486,627 bytes;
+  Newton policy: 786,306 vs 254,974). Larger files suggest more motion/scene changes (e.g. frequent resets or
+  flailing), but that's only a hint.

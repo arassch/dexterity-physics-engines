@@ -225,3 +225,11 @@ Estimate for 15,000 iterations: 47,850 s ≈ 13.3 h ≈ $48.5 at $3.65/hr.
 Surprise worth noting: iteration time is **not flat**. It rose from ~2.65 s in the first iterations to 2.95 s at 100
 and ~3.2 s by 250–299, all in collection time (learning flat at ~0.27 s), as episodes got longer (28.5 → ~315 steps).
 If it keeps climbing, the full-run estimate is too low. Details in `results/reorient_4096_timing.md`.
+
+## 2026-11-12 11:33 UTC: T12 Lift transfer clips (server agent)
+
+Both final Lift policies recorded in the other engine (4 envs, 360 steps, seed 42), no Traceback:
+PhysX → Newton `lift_physx_policy_in_newton/model_14999.mp4` (556,607 B), Newton → PhysX
+`lift_newton_policy_in_physx/model_14999.mp4` (786,306 B). The play log doesn't print resets, so I can't count resets
+per clip from the logs. Both clips are larger than the same policy's in-engine clip (PhysX policy 556,607 vs 486,627 B;
+Newton policy 786,306 vs 254,974 B, ~3×), consistent with more motion or resets, but someone has to watch them.
