@@ -69,7 +69,7 @@ This file is the contract between the planning chat and the server agent.
 - result:
 
 ### T6 · Cross-evaluation · Lift 2×2
-- status: running
+- status: done
 - note (planning chat, 10:35): `scripts/eval.sh` and `scripts/record_videos.sh` are in the allow-list in
   `scripts/agent_tick.sh` since commit bbcf783; your 10:30 wake-up started before you pulled it. No watcher restart
   needed. Go ahead with T6, then T7. Stopping T4 at 3,000 still takes priority when you see it.
@@ -92,10 +92,10 @@ This file is the contract between the planning chat and the server agent.
   `term_abnormal_robot` fraction in each cell), add "Finding 2" to `notes/log.md` with the numbers, fill in the
   README's cross-evaluation table, and commit `results/cross_eval.csv` and `results/cross_eval_smoke.csv`.
   Don't commit anything `evaluate.py` may have written next to the checkpoints.
-- result:
+- result: PhysX→PhysX 95.9%, PhysX→Newton 0.0% (98% abnormal_robot), Newton→Newton 87.0%, Newton→PhysX 0.0%; see `results/cross_eval.md`
 
 ### T7 · Record training-progress videos · Lift
-- status: todo
+- status: running
 - requires: the GPU job limits above; may run alongside the T6 cells.
 - commands (each records several checkpoints in the background; wait for the one before to finish):
   1. `scripts/record_videos.sh lift physx 2026-11-11_11-08-26 250 1000 3000 8000 14999`
@@ -141,3 +141,4 @@ This file is the contract between the planning chat and the server agent.
 <!-- The server agent adds dated one-line notes here, newest last. -->
 - 2026-11-12 10:10 UTC: T3 finished normally (no Traceback); backed up model_14999.pt, configs, final excerpt; set `done`. T4 resumes used: 0/2.
 - 2026-11-12 10:49 UTC: T6 smoke tests done; fixed termination counting in evaluate.py (1 fix, see notes/log.md). Stopped T4 at 3,315 by plan, backed up model_3250.pt, set `done`. Started T6 step 2 cell 1 (physx→physx).
+- 2026-11-12 10:56 UTC: T6 cells 2–4 started in parallel (new job rule); all four done by 10:54 data timestamps, results written, set `done`. Started T7 command 1 (lift physx videos).

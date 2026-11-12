@@ -54,8 +54,12 @@ abnormal state, and diverged to NaN once. Configs differ only in the solver bloc
 
 | Success rate | Run in PhysX | Run in Newton |
 |---|---|---|
-| Trained in PhysX | _tbd_ | _tbd_ |
-| Trained in Newton | _tbd_ | _tbd_ |
+| Trained in PhysX | **95.9%** (94.5–97.0) | **0.0%** (0.0–0.4) · 98% `abnormal_robot` |
+| Trained in Newton | **0.0%** (0.0–0.4) · 23% `abnormal_robot`, 66% time-out | **87.0%** (84.9–88.9) |
+
+Lift, final checkpoints (`model_14999.pt`), ~1,024 episodes per cell, 256 envs, deterministic policy (no exploration
+noise), Play config (ADR at max difficulty), seed 42. Brackets: 95% Wilson interval. Details in
+[`results/cross_eval.md`](results/cross_eval.md).
 
 ### Training cost (measured)
 

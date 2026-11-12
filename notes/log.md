@@ -185,3 +185,24 @@ Smoke results (16 envs, deterministic policy, Play config):
 **Surprise:** in Newton the PhysX policy ends **every** episode through `abnormal_robot`: 33 episodes from 16 envs
 in 46 control steps, so episodes last ~20–25 steps (~0.4 s). That is either the real transfer gap or something about Newton in the Play config; the Newton→Newton cell
 of step 2 will tell which.
+
+## 2026-11-12 10:54 UTC: Finding 2 — neither Lift policy transfers to the other engine (T6, server agent)
+
+The four cells ran together (rule change at 10:47), ~1,024 episodes each, 256 envs, deterministic, Play config,
+seed 42. Full table: `results/cross_eval.md`.
+
+| Trained → run in | Episodes | Success (95% CI) | abnormal_robot | object_out_of_bound | time_out |
+|---|---|---|---|---|---|
+| PhysX → PhysX | 1,025 | 95.9% (94.5–97.0) | 1.1% | 0.5% | 98.4% |
+| PhysX → Newton | 1,025 | 0.0% (0.0–0.4) | 98.3% | 1.7% | 0.0% |
+| Newton → Newton | 1,071 | 87.0% (84.9–88.9) | 13.6% | 0.3% | 86.1% |
+| Newton → PhysX | 1,024 | 0.0% (0.0–0.4) | 22.9% | 12.0% | 65.5% |
+
+- Newton → Newton at 87% rules out a broken Newton Play setup: the smoke test's 0% for PhysX → Newton is real.
+- **Both directions drop to 0 successes in ~1,024 episodes** (from 95.9% and 87.0% in their own engine).
+- The failures look different. PhysX → Newton: 98% `abnormal_robot` after ~23 control steps (1,025 episodes in 93
+  steps with 256 envs), so the hand trips the abnormal-robot check almost immediately. Newton → PhysX: episodes
+  mostly last to the time limit (65.5%); 12% drop the object out of bounds, 23% `abnormal_robot`.
+- Same-engine numbers match training (PhysX ~93–98%, Newton ~86%, which include exploration noise).
+- Next useful check (for a human to decide): the T7 videos, and whether `abnormal_robot` in PhysX → Newton is joint
+  velocity/limit violation at the very first steps.
