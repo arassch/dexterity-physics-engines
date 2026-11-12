@@ -141,12 +141,43 @@ This file is the contract between the planning chat and the server agent.
 - result: median iteration 1.80 s (collection 1.53 s, learning 0.27 s), 72.8k steps/s, ~7.7 GB; success 0, ADR 0 at 300; 15,000 its ≈ 7.5 h ≈ $27.4 (likely low, still drifting up); see `results/reorient_4096_timing.md`
 
 ### T10 · Reorient · PhysX · 4,096 envs (full run)
-- status: hold
-- command: decided after T8/T9 (likely `scripts/train.sh reorient physx <iters> --envs 4096`)
+- status: todo
+- decided Thu 12 Nov 11:54: run T10 and T11 **at the same time**, 15,000 iterations max, with the early-stop rule below.
+- requires: T5 not `running` or `todo` (T5 is exclusive). Start T10 and T11 in the same wake-up, one right after
+  the other (wait ~1 minute between them so they don't load at the same moment).
+- command: `scripts/train.sh reorient physx 15000 --envs 4096`
+- **early-stop rule** (check at every wake-up once the run is past iteration 5,000): compare the mean
+  `Metrics/success_rate` over the last 500 iterations with the mean over the 500 iterations that ended 2,000
+  iterations earlier (e.g. at 7,000: iterations 6,500–7,000 vs 4,500–5,000). If it improved by **less than 2
+  percentage points**, stop the run with `scripts/stop_run.sh <pid>` and treat it as finished. Write both means and
+  the decision in `notes/log.md` each time you check after 5,000, so the record shows why it stopped.
+- crash policy and backup as in the rules and CLAUDE.md, but back up into `checkpoints/reorient_physx_4096/`,
+  `configs/reorient_physx_4096/` and `results/log_excerpts/reorient_physx_4096_final.txt` (the 512-env T3 run keeps
+  the `reorient_physx` names). Result: final/stop iteration, success (last-500 mean), abnormal_robot, ADR, reward,
+  iteration time while sharing the GPU.
+- run_folder:
+- result:
 
 ### T11 · Reorient · Newton · 4,096 envs (full run)
-- status: hold
-- command: decided after T8/T9 (likely `scripts/train.sh reorient newton <iters> --envs 4096`)
+- status: todo
+- same decision, requirements, early-stop rule and crash policy as T10; start together with T10.
+- command: `scripts/train.sh reorient newton 15000 --envs 4096`
+- back up into `checkpoints/reorient_newton_4096/`, `configs/reorient_newton_4096/`,
+  `results/log_excerpts/reorient_newton_4096_final.txt`.
+- run_folder:
+- result:
+
+### T13 · Cross-evaluation · Reorient 2×2
+- status: todo
+- requires: T10 and T11 both `done` (finished or stopped early). Same GPU job limits as T6.
+- the same procedure as T6 step 2 (no smoke test needed), with the task `reorient` and the 4,096-env checkpoints:
+  1. `scripts/eval.sh reorient physx physx checkpoints/reorient_physx_4096/<final>.pt`
+  2. `scripts/eval.sh reorient physx newton checkpoints/reorient_physx_4096/<final>.pt`
+  3. `scripts/eval.sh reorient newton newton checkpoints/reorient_newton_4096/<final>.pt`
+  4. `scripts/eval.sh reorient newton physx checkpoints/reorient_newton_4096/<final>.pt`
+- on done: add a Reorient section to `results/cross_eval.md` (same table format as Lift), "Finding 3" in
+  `notes/log.md`, and the README.
+- result:
 
 ## Agent notes
 
