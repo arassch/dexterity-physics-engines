@@ -5,6 +5,8 @@
 # Usage:
 #   scripts/record_videos.sh <lift|reorient> <physx|newton> <run_folder> [checkpoint numbers...]
 #   e.g. scripts/record_videos.sh lift physx 2026-11-11_11-08-26 250 1000 3000 8000 14999
+#   Optional --out <name> right after the run folder sets the output folder name, e.g. to record a policy in the
+#   *other* engine:  scripts/record_videos.sh lift newton 2026-11-11_11-08-26 --out lift_physx_policy_in_newton 14999
 #
 # Clips are copied to ~/runs/videos/<task>_<engine>/model_<N>.mp4 (not committed to git: too big).
 # Isaac Lab's play script writes every clip to <run_folder>/videos/play/ under the same name, so each one is moved
@@ -14,13 +16,16 @@ set -uo pipefail
 # Always run in the background (one call records all checkpoints; can take ~15 min). Progress goes to the log below.
 if [[ -z "${RECORD_VIDEOS_CHILD:-}" ]]; then
   mkdir -p "$HOME/runs"
-  RECORD_VIDEOS_CHILD=1 nohup "$0" "$@" > "$HOME/runs/videos_${1:-x}_${2:-x}_driver.log" 2>&1 &
-  echo "Started recording in the background (pid $!). Progress: tail -f ~/runs/videos_${1:-x}_${2:-x}.log"
+  RECORD_VIDEOS_CHILD=1 nohup "$0" "$@" > "$HOME/runs/videos_driver_$(date +%H%M%S).log" 2>&1 &
+  echo "Started recording in the background (pid $!). Progress: ls -t ~/runs/videos_*.log | head -1 | xargs tail -f"
   exit 0
 fi
 
 TASK_SHORT="${1:?usage: record_videos.sh <lift|reorient> <physx|newton> <run_folder> [N ...]}"
 ENGINE="${2:?engine}"; RUN="${3:?run folder}"; shift 3
+OUT_NAME=""
+if [[ "${1:-}" == "--out" ]]; then OUT_NAME="${2:?--out needs a name}"; shift 2; fi
+[[ -z "$OUT_NAME" || "$OUT_NAME" =~ ^[A-Za-z0-9_.-]+$ ]] || { echo "--out name: letters, digits, _ . - only" >&2; exit 1; }
 CHECKPOINTS=("$@"); [[ ${#CHECKPOINTS[@]} -gt 0 ]] || CHECKPOINTS=(250 1000 3000 8000 14999)
 
 case "$TASK_SHORT" in
@@ -32,8 +37,8 @@ case "$ENGINE" in physx) PHYSICS=physx ;; newton) PHYSICS=newton_mjwarp ;; *) ec
 
 ISAACLAB_DIR="${ISAACLAB_DIR:-/workspace/isaaclab}"
 RUN_PATH="$ISAACLAB_DIR/logs/rsl_rl/dexsuite_kuka_allegro/$RUN"
-OUT="$HOME/runs/videos/${TASK_SHORT}_${ENGINE}"
-LOG="$HOME/runs/videos_${TASK_SHORT}_${ENGINE}.log"
+OUT="$HOME/runs/videos/${OUT_NAME:-${TASK_SHORT}_${ENGINE}}"
+LOG="$HOME/runs/videos_${OUT_NAME:-${TASK_SHORT}_${ENGINE}}.log"
 VIDEO_STEPS="${VIDEO_STEPS:-360}"     # 360 control steps at 60 Hz = one 6 s episode
 mkdir -p "$OUT"
 [[ -d "$RUN_PATH" ]] || { echo "no such run folder: $RUN_PATH" >&2; exit 1; }
