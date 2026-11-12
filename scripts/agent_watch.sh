@@ -11,7 +11,7 @@ set -uo pipefail
 REPO="${REPO:-$HOME/dexterity-physics-engines}"
 STATE="${STATE:-$HOME/runs/agent}"
 INTERVAL="${INTERVAL:-300}"      # 5 minutes between cheap checks
-HEARTBEAT="${HEARTBEAT:-7200}"   # wake Claude at least every 2 hours
+HEARTBEAT="${HEARTBEAT:-3600}"   # wake Claude at least every hour
 mkdir -p "$STATE"
 cd "$REPO" || exit 1
 

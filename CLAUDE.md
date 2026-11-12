@@ -17,13 +17,13 @@ write the question under "Needs a human" in `STATUS.md` and leave the task alone
 - Isaac Lab: `/workspace/isaaclab` (version 3.0.0; exact package versions in `setup/ENVIRONMENT.md`).
 - Run outputs: `/workspace/isaaclab/logs/rsl_rl/dexsuite_kuka_allegro/<start-time>/` with `model_<N>.pt` every 250
   iterations and `params/env.yaml`, `params/agent.yaml`. Lift and Reorient runs share this parent folder.
-- Training logs (stdout): `~/runs/<name>.log`. `scripts/train.sh` names them `<task>_<engine>_<iters>[_resume].log`;
+- Training logs (stdout): `~/runs/<name>.log`. `scripts/train.sh` names them `<task>_<engine>_<iters>[_<N>envs][_resume_<time>].log`;
   older runs used names like `lift_physx_full.log` (see RUNS.md).
 - `scripts/idle_stop.sh` may be running: it stops the instance after 20 idle minutes with no training. Leave it alone.
 
 ## How to do things
 
-- **Start a training run:** `scripts/train.sh <lift|reorient> <physx|newton> [iterations]` from the repo root.
+- **Start a training run:** `scripts/train.sh <lift|reorient> <physx|newton> [iterations] [--envs N]` from the repo root.
   It runs in the background with `nohup` and returns immediately.
 - **Resume after a crash:** `scripts/train.sh <task> <engine> <remaining_iters> --resume <run_folder> <model_N.pt>`.
   On resume, iterations are *additional*: use 15000 minus the checkpoint's iteration number. A resume writes to a

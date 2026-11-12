@@ -12,7 +12,8 @@ This file is the contract between the planning chat and the server agent.
 
 - At most **2** GPU jobs at the same time. A task marked `exclusive` needs the GPU to itself.
 - Defaults for every training run: 512 envs, seed 42, `presets=cube`, 15,000 iterations. Never change rewards, configs
-  or these defaults unless a task here says so.
+  or these defaults unless a task here says so. **Exception (decided Thu 12 Nov): Reorient from T8 on uses 4,096 envs**
+  (NVIDIA's default for Reorient), via `--envs 4096`. Lift stays at 512.
 - Crash policy for training runs:
   - NaN / simulation divergence: resume from the latest checkpoint for the remaining iterations. At most **2**
     automatic resumes per task; after that set the task to `failed` and explain in STATUS.md.
@@ -41,17 +42,21 @@ This file is the contract between the planning chat and the server agent.
 - run_folder: `2026-11-11_23-23-11`
 - result: training success ~4% (last-500 mean 4.2%), abnormal_robot ~1%, ADR 0.005; plateaued from ~3,000 its
 
-### T4 · Reorient · Newton
+### T4 · Reorient · Newton (512 envs)
 - status: running
 - command: `scripts/train.sh reorient newton`
-- started: Thu 12 Nov ~09:35, log `~/runs/reorient_newton_full.log`. If there is no such process and no such log,
-  it was never started: start it.
-- run_folder: `2026-11-12_09-31-46`
+- started: Thu 12 Nov ~09:31, log `~/runs/reorient_newton_full.log`, run_folder `2026-11-12_09-31-46`
+- **stop condition (decided Thu 12 Nov):** at the first wake-up at or after iteration **3,000**, stop it with
+  `scripts/stop_run.sh <pid>`. It isn't worth finishing: like T3 it runs 512 envs, which is likely too few for
+  Reorient. Before stopping, record in `notes/log.md` the early-termination phase as a table every 250 iterations
+  (abnormal_robot, mean episode length, mean reward, success) and whether it recovered, compared with T2 (Lift Newton)
+  over the same iterations. Back it up like a finished run (latest checkpoint, configs, last 60 log lines), and set
+  status `done` with result "stopped at iteration N by plan".
 - result:
 
 ### T5 · Speed benchmark (exclusive)
 - status: todo
-- requires: T3 and T4 not `running`, and no other GPU job running (exclusive)
+- requires: T4, T8 and T9 not `running` or `todo`, and no other GPU job running (exclusive)
 - commands, one after the other, each alone on the GPU:
   1. `scripts/train.sh lift physx 300`
   2. `scripts/train.sh lift newton 300`
@@ -67,6 +72,36 @@ This file is the contract between the planning chat and the server agent.
 ### T7 · Record training-progress videos · Lift
 - status: blocked
 - blocked on: confirming the play/video command for this Isaac Lab version
+
+### T8 · Reorient timing run · PhysX · 4,096 envs (exclusive)
+- status: todo
+- requires: T4 not `running`, and no other GPU job running (exclusive)
+- command: `scripts/train.sh reorient physx 300 --envs 4096`
+- while it runs, check `nvidia-smi` a few times and note peak GPU memory and utilisation.
+- on done: write the numbers into `results/reorient_4096_timing.md`: median "Iteration time", "Steps per second",
+  "Collection time", "Learning time" over iterations 100–299; peak GPU memory; success/ADR at 300; and the estimate
+  for 15,000 iterations in hours and dollars (at $3.65/hr). If it crashes (e.g. out of memory), record the error and
+  set `failed`; don't retry.
+- run_folder:
+- result:
+
+### T9 · Reorient timing run · Newton · 4,096 envs (exclusive)
+- status: todo
+- requires: T8 not `running` or `todo`, and no other GPU job running (exclusive)
+- command: `scripts/train.sh reorient newton 300 --envs 4096`
+- same measurements as T8, added to `results/reorient_4096_timing.md` as a second column.
+- **then stop and ask:** put the two full-run estimates under "Needs a human" in STATUS.md. Do not start T10 or T11;
+  the planning chat decides iterations and budget from these numbers.
+- run_folder:
+- result:
+
+### T10 · Reorient · PhysX · 4,096 envs (full run)
+- status: hold
+- command: decided after T8/T9 (likely `scripts/train.sh reorient physx <iters> --envs 4096`)
+
+### T11 · Reorient · Newton · 4,096 envs (full run)
+- status: hold
+- command: decided after T8/T9 (likely `scripts/train.sh reorient newton <iters> --envs 4096`)
 
 ## Agent notes
 

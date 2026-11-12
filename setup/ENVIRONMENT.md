@@ -93,5 +93,5 @@ pkill -f agent_watch.sh                                         # stop watching
 ```
 
 The watcher checks every 5 minutes without using Claude, and wakes Claude only when PLAN.md changes on GitHub,
-a run starts/finishes/crashes, or 2 hours pass. Claude runs with `--permission-mode dontAsk` and an explicit
+a run starts/finishes/crashes, or an hour passes. Claude runs with `--permission-mode dontAsk` and an explicit
 allow-list (in `scripts/agent_tick.sh`); `.claude/settings.json` denies `brev`, `sudo`, `rm`, `curl`, force-push.
