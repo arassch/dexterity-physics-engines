@@ -30,6 +30,8 @@ snapshot() {
 
 wake() {
   echo "$(date -u +%FT%TZ) waking agent: $1"
+  # Pull first, so the wake-up runs the latest agent_tick.sh (allow-list) and agent_prompt.md.
+  git -C "$REPO" pull -q --rebase origin main 2>&1 | tail -2
   "$REPO/scripts/agent_tick.sh" "$1"
   snapshot > "$STATE/last_snapshot"     # snapshot AFTER the agent acted, so its own changes don't re-trigger
   date +%s > "$STATE/last_tick"
