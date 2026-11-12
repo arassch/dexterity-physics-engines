@@ -60,3 +60,38 @@ curl -sL "$URL" | tar xz && find . -name brev -type f -exec mv {} ~/bin/ \; && c
 ~/bin/brev login     # follow the link/code it prints
 ~/bin/brev ls        # confirm the instance name
 ```
+
+## Server agent (Claude Code on the instance)
+
+The instance runs a Claude Code agent that follows `PLAN.md`: it resumes crashed runs, starts the next tasks,
+backs up results and reports in `STATUS.md`. See `CLAUDE.md` (its instructions) and `scripts/agent_prompt.md`.
+
+One-time setup, in a VS Code terminal on the instance:
+
+```bash
+curl -fsSL https://claude.ai/install.sh | bash
+echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc && source ~/.bashrc
+cd ~/dexterity-physics-engines && claude      # log in once, then type /exit
+```
+
+Unattended `git push` needs a stored credential, because the VS Code sign-in only works inside VS Code:
+create a fine-grained GitHub token limited to this repository with **Contents: Read and write**, then
+
+```bash
+git config --global credential.helper store
+git push        # username: arassch, password: the token (saved to ~/.git-credentials)
+```
+
+Start, stop and inspect the agent:
+
+```bash
+mkdir -p ~/runs/agent
+scripts/agent_watch.sh --once                                   # one wake-up now, to test
+nohup scripts/agent_watch.sh > ~/runs/agent/watch.log 2>&1 &    # keep watching
+tail ~/runs/agent/ticks.log                                     # what each wake-up did
+pkill -f agent_watch.sh                                         # stop watching
+```
+
+The watcher checks every 5 minutes without using Claude, and wakes Claude only when PLAN.md changes on GitHub,
+a run starts/finishes/crashes, or 2 hours pass. Claude runs with `--permission-mode dontAsk` and an explicit
+allow-list (in `scripts/agent_tick.sh`); `.claude/settings.json` denies `brev`, `sudo`, `rm`, `curl`, force-push.

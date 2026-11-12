@@ -23,8 +23,7 @@ With [`scripts/train.sh`](scripts/train.sh), each run is one line (run from the 
 scripts/train.sh lift physx 300          # 1
 scripts/train.sh lift physx              # 2
 scripts/train.sh lift newton             # 3
-RESUME_RUN=2026-11-11_13-06-41 CHECKPOINT=model_10000.pt \
-  scripts/train.sh lift newton 5000      # 4  (on resume, iterations are additional)
+scripts/train.sh lift newton 5000 --resume 2026-11-11_13-06-41 model_10000.pt   # 4 (iterations are additional)
 scripts/train.sh reorient physx          # 5
 scripts/train.sh reorient newton         # 6
 ```

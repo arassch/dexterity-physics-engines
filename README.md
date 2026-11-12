@@ -72,6 +72,12 @@ Speed figures from shared-GPU runs aren't a fair engine comparison; isolated ben
 See [`setup/ENVIRONMENT.md`](setup/ENVIRONMENT.md) for the exact software versions and cloud setup,
 [`RUNS.md`](RUNS.md) for every training run and its exact command, and [`scripts/`](scripts/) for the scripts.
 
+## How this project is run
+
+Planning happens in a chat with Claude; the plan lives in [`PLAN.md`](PLAN.md). A Claude Code agent on the GPU
+instance follows it: it starts the next runs, resumes crashed ones, backs up results and reports in
+[`STATUS.md`](STATUS.md). Setup in [`setup/ENVIRONMENT.md`](setup/ENVIRONMENT.md#server-agent-claude-code-on-the-instance).
+
 ## Working notes
 
 [`notes/log.md`](notes/log.md) is a dated log of what was tried, what broke and what was learned.
