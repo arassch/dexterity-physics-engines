@@ -215,3 +215,13 @@ No Traceback or failed clip, ~50–70 s per clip; the only warnings were OmniHub
 `results/videos.md`; clips only on the server (`~/runs/videos/`). Newton clips from 3,000 on are ~40% smaller
 (255–300 KB vs 410–490 KB for PhysX), which only means the frames compress differently. Nobody has watched them yet.
 No cross-engine clip was recorded (not in PLAN.md).
+
+## 2026-11-12 11:31 UTC: T8 Reorient PhysX timing at 4,096 envs (server agent)
+
+300 iterations, alone on the GPU, finished normally (`Training time: 931.65 seconds`). Medians over iterations
+100–299: iteration 3.19 s, collection 2.911 s, learning 0.274 s, 41,143 steps/s. GPU memory 9.3 GB at iteration 217
+(60% util). At 299: success 0.000, ADR 0.000, abnormal_robot 0.0097, mean reward 3.63, episode length 315.
+Estimate for 15,000 iterations: 47,850 s ≈ 13.3 h ≈ $48.5 at $3.65/hr.
+Surprise worth noting: iteration time is **not flat**. It rose from ~2.65 s in the first iterations to 2.95 s at 100
+and ~3.2 s by 250–299, all in collection time (learning flat at ~0.27 s), as episodes got longer (28.5 → ~315 steps).
+If it keeps climbing, the full-run estimate is too low. Details in `results/reorient_4096_timing.md`.

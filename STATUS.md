@@ -1,18 +1,24 @@
 # Status
-Updated: 2026-11-12 11:24 UTC by the server agent (wake-up: state changed, PLAN.md edited to add T12)
+Updated: 2026-11-12 11:31 UTC by the server agent (wake-up: state changed, T8 training process exited)
 
 ## GPU jobs
 | Task | Engine | Iteration | Success | abnormal_robot | ADR | ETA |
 |---|---|---|---|---|---|---|
-| T8 Reorient timing, 4,096 envs (exclusive) | PhysX | 217/300 | 0.00 | 0.013 | 0.000 | ~4 min (≈11:28 UTC) |
+| T12 clip 1: Lift PhysX policy in Newton (video, model_14999) | Newton | n/a (policy loaded, recording) | — | — | — | ~1–2 min |
 
-GPU at iteration 217: 9.3 GB of 46 GB, 60% utilisation. Iteration time ~3.3 s (collection 3.02 s, learning 0.28 s),
-~39.7k steps/s. Peak memory so far: 9.3 GB. Full numbers go in `results/reorient_4096_timing.md` once T8 finishes.
+No training runs. GPU was idle (0 MiB) before T12 started.
 
 ## Since last update
-- Nothing changed except progress. T8 is still iterating.
-- Saw the new task **T12** (Lift transfer clips). It is `todo` but has to wait until exclusive T8 finishes. It will
-  run before T9, and T5 comes after T9.
+- **T8 done** (finished normally, `Training time: 931.65 seconds`). Medians over iterations 100–299: iteration
+  3.19 s, collection 2.91 s, learning 0.27 s, 41.1k steps/s; ~9.3 GB GPU. At 299: success 0, ADR 0,
+  abnormal_robot 0.010. **15,000 iterations ≈ 13.3 h ≈ $48.5.** Written to `results/reorient_4096_timing.md`.
+- Iteration time rose during the run (~2.65 s → ~3.2 s, all in collection), so that estimate may be low (see
+  `notes/log.md`).
+- Backed up the T8 configs to `configs/reorient_physx_4096_timing/` and saved the last 60 log lines. I did **not** copy
+  `model_299.pt` into the repo: it's a 300-iteration timing run, like T5 ("no checkpoints"). It is still on the server.
+- Started **T12** command 1 (`record_videos.sh lift newton 2026-11-11_11-08-26 --out lift_physx_policy_in_newton 14999`).
+  Command 2 (Newton policy in PhysX) starts on the next wake-up once this one finishes. After that comes T9.
 
 ## Needs a human
-- nothing. (Still worth a human look: the T7 clips, given the 0% cross-engine results from T6.)
+- Nothing blocking. If you want the T8 `model_299.pt` in the repo, say so (it's in
+  `logs/.../2026-11-12_11-11-43/` on the server).

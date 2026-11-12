@@ -107,7 +107,7 @@ This file is the contract between the planning chat and the server agent.
 - result: 11 clips (PhysX 5, Newton 6), no errors; list in `results/videos.md`
 
 ### T12 · Transfer clips · Lift (policy in the other engine)
-- status: todo
+- status: running
 - why: sanity-check Finding 2 (0% success across engines both ways) by eye, and the key shot for the video.
 - requires: the GPU job limits above (it waits while an exclusive task like T8 runs); start it before T9.
 - commands (record one at a time):
@@ -119,7 +119,7 @@ This file is the contract between the planning chat and the server agent.
 - result:
 
 ### T8 · Reorient timing run · PhysX · 4,096 envs (exclusive)
-- status: running
+- status: done
 - requires: T4 not `running`, and no other GPU job running (exclusive)
 - command: `scripts/train.sh reorient physx 300 --envs 4096`
 - while it runs, check `nvidia-smi` a few times and note peak GPU memory and utilisation.
@@ -128,7 +128,7 @@ This file is the contract between the planning chat and the server agent.
   for 15,000 iterations in hours and dollars (at $3.65/hr). If it crashes (e.g. out of memory), record the error and
   set `failed`; don't retry.
 - run_folder: `2026-11-12_11-11-43` (log `~/runs/reorient_physx_300_4096envs.log`)
-- result:
+- result: median iteration 3.19 s (collection 2.91 s, learning 0.27 s), 41.1k steps/s, peak ~9.3 GB; success 0, ADR 0 at 300; 15,000 its ≈ 13.3 h ≈ $48.5; see `results/reorient_4096_timing.md`
 
 ### T9 · Reorient timing run · Newton · 4,096 envs (exclusive)
 - status: todo
@@ -155,3 +155,4 @@ This file is the contract between the planning chat and the server agent.
 - 2026-11-12 10:49 UTC: T6 smoke tests done; fixed termination counting in evaluate.py (1 fix, see notes/log.md). Stopped T4 at 3,315 by plan, backed up model_3250.pt, set `done`. Started T6 step 2 cell 1 (physx→physx).
 - 2026-11-12 10:56 UTC: T6 cells 2–4 started in parallel (new job rule); all four done by 10:54 data timestamps, results written, set `done`. Started T7 command 1 (lift physx videos).
 - 2026-11-12 11:13 UTC: T7 commands 1–2 found finished; ran command 3 (Lift Newton resume, model_14999); 11 clips, set `done`. GPU idle, so started T8 (reorient physx 300, 4,096 envs, exclusive); iterating.
+- 2026-11-12 11:31 UTC: T8 finished normally (931.65 s); backed up configs + final excerpt (no checkpoint, timing run), wrote `results/reorient_4096_timing.md`, set `done`. Started T12 command 1 (PhysX policy in Newton).
