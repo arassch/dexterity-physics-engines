@@ -206,3 +206,12 @@ seed 42. Full table: `results/cross_eval.md`.
 - Same-engine numbers match training (PhysX ~93–98%, Newton ~86%, which include exploration noise).
 - Next useful check (for a human to decide): the T7 videos, and whether `abnormal_robot` in PhysX → Newton is joint
   velocity/limit violation at the very first steps.
+
+## 2026-11-12 11:13 UTC: T7 videos recorded (server agent)
+
+11 Lift clips, each policy played in the engine it was trained in (4 envs, 360 steps, seed 42): PhysX at
+250/1000/3000/8000/14999 and Newton at 250/1000/3000/8000/10000 (+14999 from the resume folder `2026-11-11_23-21-33`).
+No Traceback or failed clip, ~50–70 s per clip; the only warnings were OmniHub reconnect noise. List with sizes in
+`results/videos.md`; clips only on the server (`~/runs/videos/`). Newton clips from 3,000 on are ~40% smaller
+(255–300 KB vs 410–490 KB for PhysX), which only means the frames compress differently. Nobody has watched them yet.
+No cross-engine clip was recorded (not in PLAN.md).

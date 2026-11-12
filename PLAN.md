@@ -95,7 +95,7 @@ This file is the contract between the planning chat and the server agent.
 - result: PhysX→PhysX 95.9%, PhysX→Newton 0.0% (98% abnormal_robot), Newton→Newton 87.0%, Newton→PhysX 0.0%; see `results/cross_eval.md`
 
 ### T7 · Record training-progress videos · Lift
-- status: running
+- status: done
 - requires: the GPU job limits above; may run alongside the T6 cells.
 - commands (each records several checkpoints in the background; wait for the one before to finish):
   1. `scripts/record_videos.sh lift physx 2026-11-11_11-08-26 250 1000 3000 8000 14999`
@@ -104,10 +104,10 @@ This file is the contract between the planning chat and the server agent.
 - clips land in `~/runs/videos/lift_<engine>/model_<N>.mp4`. **Don't commit the .mp4 files.** Write
   `results/videos.md` listing each clip with its size and checkpoint, and note anything visible in the logs.
   If no video is produced (camera/rendering error), set `blocked` with the error excerpt in STATUS.md.
-- result:
+- result: 11 clips (PhysX 5, Newton 6), no errors; list in `results/videos.md`
 
 ### T8 · Reorient timing run · PhysX · 4,096 envs (exclusive)
-- status: todo
+- status: running
 - requires: T4 not `running`, and no other GPU job running (exclusive)
 - command: `scripts/train.sh reorient physx 300 --envs 4096`
 - while it runs, check `nvidia-smi` a few times and note peak GPU memory and utilisation.
@@ -115,7 +115,7 @@ This file is the contract between the planning chat and the server agent.
   "Collection time", "Learning time" over iterations 100–299; peak GPU memory; success/ADR at 300; and the estimate
   for 15,000 iterations in hours and dollars (at $3.65/hr). If it crashes (e.g. out of memory), record the error and
   set `failed`; don't retry.
-- run_folder:
+- run_folder: `2026-11-12_11-11-43` (log `~/runs/reorient_physx_300_4096envs.log`)
 - result:
 
 ### T9 · Reorient timing run · Newton · 4,096 envs (exclusive)
@@ -142,3 +142,4 @@ This file is the contract between the planning chat and the server agent.
 - 2026-11-12 10:10 UTC: T3 finished normally (no Traceback); backed up model_14999.pt, configs, final excerpt; set `done`. T4 resumes used: 0/2.
 - 2026-11-12 10:49 UTC: T6 smoke tests done; fixed termination counting in evaluate.py (1 fix, see notes/log.md). Stopped T4 at 3,315 by plan, backed up model_3250.pt, set `done`. Started T6 step 2 cell 1 (physx→physx).
 - 2026-11-12 10:56 UTC: T6 cells 2–4 started in parallel (new job rule); all four done by 10:54 data timestamps, results written, set `done`. Started T7 command 1 (lift physx videos).
+- 2026-11-12 11:13 UTC: T7 commands 1–2 found finished; ran command 3 (Lift Newton resume, model_14999); 11 clips, set `done`. GPU idle, so started T8 (reorient physx 300, 4,096 envs, exclusive); iterating.

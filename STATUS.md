@@ -1,26 +1,19 @@
 # Status
-Updated: 2026-11-12 10:57 UTC by the server agent (wake-up: state changed — PLAN.md updated, T6 note)
+Updated: 2026-11-12 11:14 UTC by the server agent (wake-up: state changed, T7 video jobs finished)
 
 ## GPU jobs
 | Task | Engine | Iteration | Success | abnormal_robot | ADR | ETA |
 |---|---|---|---|---|---|---|
-| T7 videos, command 1/3 (Lift PhysX, 5 checkpoints) | PhysX | n/a | | | | started 10:55; unknown, rendering has begun |
+| T8 Reorient timing, 4,096 envs (exclusive) | PhysX | 1/300 | 0.00 | — | — | ~16 min (≈11:30 UTC) |
 
-No training running.
+GPU at iteration 1: 9.1 GB of 46 GB, 66–70% utilisation. Peak memory will go in `results/reorient_4096_timing.md`.
 
 ## Since last update
-- **T4 stopped at iteration 3,315 by plan** (success 0, abnormal_robot 0.10, ADR 0, reward 8.1, 1.09 s/it). It
-  recovered from the ~0.99 abnormal_robot phase like Lift Newton did, ~250 iterations sooner (table in
-  `notes/log.md`). Backed up `model_3250.pt`, configs, final excerpt. `done`.
-- **Fixed a mechanical bug in `scripts/evaluate.py`**: termination fractions were read from
-  `extras["log"]["Episode_Termination/*"]` (a mean over all envs in Isaac Lab 3.0.0, not a per-step count); now
-  counted from `termination_manager.get_term(name)[dones]`. Success counting unchanged. Smoke tests re-run after it.
-- **T6 done (Finding 2): neither Lift policy transfers.** Success (95% CI), ~1,024 episodes each:
-  PhysX→PhysX 95.9% (94.5–97.0) · PhysX→Newton **0.0%** (0.0–0.4), 98% abnormal_robot after ~23 steps ·
-  Newton→Newton 87.0% (84.9–88.9) · Newton→PhysX **0.0%** (0.0–0.4), 66% time-out, 23% abnormal_robot, 12% out of bounds.
-  Written to `results/cross_eval.md`, README, `notes/log.md`.
-- Started T7 command 1. Commands 2 and 3 follow one at a time. T8 (exclusive) starts once T7 is finished.
+- **T7 done.** Commands 1 and 2 had finished by 11:06. Ran command 3 (Lift Newton resume folder `2026-11-11_23-21-33`,
+  `model_14999`). That makes 11 clips, all recorded without errors; listed in `results/videos.md` (the .mp4 files stay on the server).
+- **Started T8** (`scripts/train.sh reorient physx 300 --envs 4096`), run folder `2026-11-12_11-11-43`, once the GPU
+  was idle (0 MiB). It is past setup and iterating. T9 follows once T8 is done; T5 waits until after T9.
+- Committed a leftover uncommitted RUNS.md edit (it fills in the Lift Newton resume folder).
 
 ## Needs a human
-- nothing. (The 0% in both directions is a big result; worth a look at the T7 clips and maybe a PhysX→Newton clip
-  before building on it. Not in PLAN.md, so I haven't recorded one.)
+- nothing. (Still worth a human look: the T7 clips, given the 0% cross-engine results from T6.)
