@@ -1,0 +1,5 @@
+timestamp_utc,label,task,train_engine,eval_engine,checkpoint,episodes,success_rate,ci95_low,ci95_high,num_envs,seed,steps,nan_action_steps,seconds,presets,term_abnormal_robot,term_object_out_of_bound,term_time_out
+2026-11-12T10:35:59Z,lift,Isaac-Dexsuite-Kuka-Allegro-Lift-Play-v0,physx,physx,/root/dexterity-physics-engines/checkpoints/lift_physx/model_14999.pt,32,1.0,0.8928,1.0,16,42,720,0,50.4,physics=physx presets=cube,0.0,0.0,0.0625
+2026-11-12T10:36:41Z,lift,Isaac-Dexsuite-Kuka-Allegro-Lift-Play-v0,physx,newton,/root/dexterity-physics-engines/checkpoints/lift_physx/model_14999.pt,33,0.0,0.0,0.1043,16,42,46,0,2.7,physics=newton_mjwarp presets=cube,0.5606,0.0,0.0
+2026-11-12T10:43:32Z,lift,Isaac-Dexsuite-Kuka-Allegro-Lift-Play-v0,physx,physx,/root/dexterity-physics-engines/checkpoints/lift_physx/model_14999.pt,32,1.0,0.8928,1.0,16,42,720,0,50.8,physics=physx presets=cube,0.0,0.0,1.0
+2026-11-12T10:48:04Z,lift,Isaac-Dexsuite-Kuka-Allegro-Lift-Play-v0,physx,newton,/root/dexterity-physics-engines/checkpoints/lift_physx/model_14999.pt,33,0.0,0.0,0.1043,16,42,46,0,2.8,physics=newton_mjwarp presets=cube,1.0,0.0,0.0

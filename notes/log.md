@@ -135,3 +135,53 @@ raises an environment's difficulty by one level after **any successful episode**
 `rot_std/2`; that was wrong. The conclusion for T3 stands: Reorient rarely succeeded, so ADR stayed near 0.
 Success itself (`dexsuite/mdp/rewards.py`, `success_reward`): thumb + at least one finger in contact with the object
 and position error < `pos_std` (and orientation error < `rot_std` for Reorient), at any step of the episode.
+
+## 2026-11-12 10:49 UTC: Reorient Newton (T4) stopped at iteration 3,315 by plan (server agent)
+
+Stopped with `scripts/stop_run.sh` (plan: stop at the first wake-up at or after 3,000). Run folder
+`2026-11-12_09-31-46`; backed up `model_3250.pt` (latest saved; the run reached 3,315), configs, last 60 log lines.
+Training-time numbers (with exploration noise) every 250 iterations, T4 next to T2 (Lift Newton) at the same iterations:
+
+| Iteration | T4 abnormal_robot | T4 ep. length | T4 mean reward | T4 success | T2 abnormal_robot | T2 ep. length | T2 mean reward | T2 success |
+|---|---|---|---|---|---|---|---|---|
+| 250 | 0.831 | 64.6 | -0.30 | 0 | 0.823 | 54.0 | -0.27 | 0 |
+| 500 | 0.986 | 25.1 | -0.13 | 0 | 0.981 | 29.9 | -0.16 | 0 |
+| 750 | 0.998 | 28.8 | -0.13 | 0 | 0.997 | 20.5 | -0.10 | 0 |
+| 1,000 | 0.996 | 27.4 | -0.11 | 0 | 0.989 | 29.6 | -0.12 | 0 |
+| 1,250 | 0.985 | 29.4 | -0.10 | 0 | 0.988 | 26.8 | -0.09 | 0 |
+| 1,500 | 0.972 | 33.4 | -0.09 | 0 | 0.979 | 28.6 | -0.09 | 0 |
+| 1,750 | 0.819 | 68.4 | 0.08 | 0 | 0.951 | 41.4 | -0.10 | 0 |
+| 2,000 | 0.615 | 141.6 | 1.20 | 0 | 0.829 | 70.0 | -0.03 | 0 |
+| 2,250 | 0.283 | 248.7 | 4.32 | 0 | 0.507 | 174.9 | 1.15 | 0 |
+| 2,500 | 0.081 | 304.9 | 6.15 | 0 | 0.216 | 275.6 | 3.35 | 0 |
+| 2,750 | 0.075 | 291.8 | 6.94 | 0 | 0.134 | 288.6 | 4.73 | 0 |
+| 3,000 | 0.059 | 317.8 | 8.14 | 0 | 0.094 | 304.1 | 6.14 | 0 |
+| 3,250 | 0.098 | 309.5 | 8.23 | 0 | 0.079 | 313.0 | 6.55 | 0 |
+
+**It recovered.** The two Newton runs follow almost the same early-termination curve (~0.99 abnormal_robot for
+iterations 500–1,500, then a fast drop); Reorient got out ~250 iterations sooner than Lift. At the stop: success 0,
+ADR 0, abnormal_robot 0.10, time_out 0.81, object_out_of_bound 0.09, orientation error 2.36 rad, 1.09 s/iteration
+alone on the GPU. Lift Newton was also at 0 success at 3,250 (0.40 by 4,500), so 3,315 iterations say nothing about
+whether Reorient Newton would learn to succeed.
+
+## 2026-11-12: T6 smoke test, and a fix to `scripts/evaluate.py` (server agent)
+
+**Fix (mechanical, termination counting only):** `evaluate.py` summed `extras["log"]["Episode_Termination/<name>"]`
+on every step with done envs, treating it as a count. In Isaac Lab 3.0.0 that value is
+`self._last_episode_dones.float().mean(dim=0)` (`managers/termination_manager.py:144`), the fraction of **all**
+envs whose last episode ended that way, so the `term_*` columns were wrong (first PhysX smoke row: time_out 0.0625
+for 32 time-out episodes). Now it counts `termination_manager.get_term(name)[dones]` per step. Success counting
+(`Metrics/success_rate` is the mean over the envs reset that step, times `n_done`) was already right and is unchanged.
+The first two rows in `results/cross_eval_smoke.csv` (10:35:59, 10:36:41) have the wrong `term_*` values; the
+rows from 10:43:32 and 10:48:04 are after the fix.
+
+Smoke results (16 envs, deterministic policy, Play config):
+
+| Policy | Run in | Episodes | Success | abnormal_robot | time_out | Steps |
+|---|---|---|---|---|---|---|
+| Lift PhysX `model_14999.pt` | PhysX | 32 | 1.00 (95% CI 0.89–1.00) | 0.00 | 1.00 | 720 |
+| Lift PhysX `model_14999.pt` | Newton | 33 | 0.00 (95% CI 0.00–0.10) | 1.00 | 0.00 | 46 |
+
+**Surprise:** in Newton the PhysX policy ends **every** episode through `abnormal_robot`: 33 episodes from 16 envs
+in 46 control steps, so episodes last ~20–25 steps (~0.4 s). That is either the real transfer gap or something about Newton in the Play config; the Newton→Newton cell
+of step 2 will tell which.

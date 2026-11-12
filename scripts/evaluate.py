@@ -10,7 +10,7 @@ What it measures (the fair, deterministic version of the training-time numbers):
   * Success uses the task's own test (dexsuite/mdp/rewards.py, success_reward): an episode succeeds if, at any step,
     thumb + one finger touch the object and it is within pos_std (and rot_std for Reorient) of the target.
     It is read from extras["log"]["Metrics/success_rate"], which the task writes for the episodes ending that step.
-  * Termination reasons from extras["log"]["Episode_Termination/<name>"] (counts of episodes ending that way).
+  * Termination reasons from the termination manager's per-step flags (counts of episodes ending that way).
 
 The physics engine is chosen exactly like in training, with the Hydra preset: physics=physx or physics=newton_mjwarp.
 
@@ -130,10 +130,13 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
                 rate = log.get("Metrics/success_rate")
                 if rate is not None:
                     successes += _as_float(rate) * n_done
-                for key, value in log.items():
-                    if key.startswith("Episode_Termination/"):
-                        name = key.split("/", 1)[1]
-                        terminations[name] = terminations.get(name, 0.0) + _as_float(value)
+                # extras["log"]["Episode_Termination/<name>"] is a mean over *all* envs of each env's last episode,
+                # not a count for the episodes ending now, so count from the termination manager's per-step flags.
+                done_mask = dones.to(torch.bool).view(-1)
+                term_mgr = env.unwrapped.termination_manager
+                for name in term_mgr.active_terms:
+                    count = int(term_mgr.get_term(name)[done_mask].sum().item())
+                    terminations[name] = terminations.get(name, 0.0) + count
                 episodes += n_done
                 if steps % 50 == 0:
                     print(f"[EVAL] step {steps}: {episodes} episodes, success so far {successes / episodes:.3f}")

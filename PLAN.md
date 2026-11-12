@@ -46,7 +46,7 @@ This file is the contract between the planning chat and the server agent.
 - result: training success ~4% (last-500 mean 4.2%), abnormal_robot ~1%, ADR 0.005; plateaued from ~3,000 its
 
 ### T4 · Reorient · Newton (512 envs)
-- status: running
+- status: done
 - command: `scripts/train.sh reorient newton`
 - started: Thu 12 Nov ~09:31, log `~/runs/reorient_newton_full.log`, run_folder `2026-11-12_09-31-46`
 - **stop condition (decided Thu 12 Nov):** at the first wake-up at or after iteration **3,000**, stop it with
@@ -55,7 +55,7 @@ This file is the contract between the planning chat and the server agent.
   (abnormal_robot, mean episode length, mean reward, success) and whether it recovered, compared with T2 (Lift Newton)
   over the same iterations. Back it up like a finished run (latest checkpoint, configs, last 60 log lines), and set
   status `done` with result "stopped at iteration N by plan".
-- result:
+- result: stopped at iteration 3,315 by plan (success 0, abnormal_robot 0.10 after recovering from ~0.99, ADR 0; backed up model_3250.pt)
 
 ### T5 · Speed benchmark (exclusive)
 - status: todo
@@ -69,7 +69,7 @@ This file is the contract between the planning chat and the server agent.
 - result:
 
 ### T6 · Cross-evaluation · Lift 2×2
-- status: todo
+- status: running
 - note (planning chat, 10:35): `scripts/eval.sh` and `scripts/record_videos.sh` are in the allow-list in
   `scripts/agent_tick.sh` since commit bbcf783; your 10:30 wake-up started before you pulled it. No watcher restart
   needed. Go ahead with T6, then T7. Stopping T4 at 3,000 still takes priority when you see it.
@@ -140,3 +140,4 @@ This file is the contract between the planning chat and the server agent.
 
 <!-- The server agent adds dated one-line notes here, newest last. -->
 - 2026-11-12 10:10 UTC: T3 finished normally (no Traceback); backed up model_14999.pt, configs, final excerpt; set `done`. T4 resumes used: 0/2.
+- 2026-11-12 10:49 UTC: T6 smoke tests done; fixed termination counting in evaluate.py (1 fix, see notes/log.md). Stopped T4 at 3,315 by plan, backed up model_3250.pt, set `done`. Started T6 step 2 cell 1 (physx→physx).
