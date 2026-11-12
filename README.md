@@ -44,8 +44,8 @@ Final training metrics, with exploration noise on (deterministic evaluation come
 |---|---|---|---|---|---|
 | Lift | PhysX | ~93–98% | ~2% | 0.99 | 0 |
 | Lift | Newton | ~86% | ~14% | 0.98 | 1 (resumed from iteration 10,000) |
-| Reorient | PhysX | _training_ | | | |
-| Reorient | Newton | _next_ | | | |
+| Reorient | PhysX | ~4% | ~1% | 0.005 | 0 |
+| Reorient | Newton | _training_ | | | |
 
 **Finding so far:** at the same curriculum difficulty, Newton ends ~7× more episodes with the robot in an
 abnormal state, and diverged to NaN once. Configs differ only in the solver block (see [`notes/log.md`](notes/log.md)).

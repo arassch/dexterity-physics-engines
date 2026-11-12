@@ -87,3 +87,44 @@ Plan: record abnormal episodes in slow motion and log contact forces and joint v
 - In the VS Code container `$HOME` is `/root`, so `~/runs` is `/root/runs`.
 
 **Reorient · PhysX** started 23:21 (Wed), at 14,225 / 15,000 by 09:22. Faster than expected.
+
+## 2026-11-12: Reorient PhysX finished (server agent)
+
+**Reorient · PhysX (T3) finished normally, but it barely learned the task.** Run folder `2026-11-11_23-23-11`,
+`Training time: 38364.77 seconds` (10 h 40 min), no Traceback. Final checkpoint `model_14999.pt` backed up.
+Training-time numbers (include exploration noise):
+
+| Iteration | success_rate | Curriculum/adr | abnormal_robot | Mean reward |
+|---|---|---|---|---|
+| 1,000 | 0.000 | 0.0000 | 0.008 | 2.73 |
+| 3,000 | 0.042 | 0.0007 | 0.018 | 8.85 |
+| 5,000 | 0.031 | 0.0059 | 0.010 | 11.35 |
+| 10,000 | 0.018 | 0.0049 | 0.012 | 10.98 |
+| 14,000 | 0.038 | 0.0079 | 0.022 | 10.96 |
+| 15,000 (final) | 0.047 | 0.0042 | 0.014 | 11.41 |
+| mean of last 500 | **0.042** | **0.0047** | **0.012** | |
+
+- Success plateaued at ~3–5% from iteration ~3,000 on; reward plateaued at ~11 from ~4,000. ADR never left ~0.005
+  (Lift reached 0.99), so the curriculum never got harder.
+- Final: `Metrics/object_pose/orientation_error: 2.3451` (rad), `position_error: 0.1558`,
+  `Mean action std: 1.58` (Lift is not comparable yet; noting for later), `time_out: 0.871`, `object_out_of_bound: 0.115`.
+- Iteration time ~2.0–2.1 s mid-run (shared GPU), 3.5–3.8 s at the end (shared with Newton Reorient).
+- The policy lifts and holds the cube (position reward ~1.1) but does not rotate it to the target.
+
+**Reorient · Newton (T4) is in an early phase where most episodes end through `abnormal_robot`.** Run folder
+`2026-11-12_09-31-46`. Training-time numbers:
+
+| Iteration | abnormal_robot | Mean episode length | Mean reward |
+|---|---|---|---|
+| 100 | 0.213 | 300.4 | -1.32 |
+| 200 | 0.623 | 105.4 | -0.44 |
+| 300 | 0.902 | 51.4 | -0.24 |
+| 500 | 0.989 | 25.2 | -0.14 |
+| 1,100 | 0.991 | 33.7 | -0.12 |
+
+Success 0, ADR 0, position_tracking 0. Mean reward is negative and goes up as episodes get shorter, so the policy may
+have learned that triggering an `abnormal_robot` termination early is the best option (`early_termination` penalty
+only -0.003). **Lift Newton went through the same phase and recovered** (from `lift_newton_full.log`):
+abnormal_robot 0.986 / 0.988 / 0.984 / 0.826 / 0.224 / 0.093 at iterations 500 / 1,000 / 1,500 / 2,000 / 2,500 / 3,000,
+episode length 25 → 275 by 2,500, success 0.40 by 4,500. So this is not yet a problem. Recheck T4 at ~3,000.
+It is still running (ETA ~7 h at ~1.13 s/iteration, now alone on the GPU).

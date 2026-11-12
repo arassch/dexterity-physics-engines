@@ -35,18 +35,18 @@ This file is the contract between the planning chat and the server agent.
 - result: training success ~86%, abnormal_robot ~14%, ADR 0.98, 1 NaN crash
 
 ### T3 · Reorient · PhysX baseline
-- status: running
+- status: done
 - command: `scripts/train.sh reorient physx`
 - started: Wed 11 Nov 23:21, log `~/runs/reorient_physx_full.log`
-- run_folder:
-- result:
+- run_folder: `2026-11-11_23-23-11`
+- result: training success ~4% (last-500 mean 4.2%), abnormal_robot ~1%, ADR 0.005; plateaued from ~3,000 its
 
 ### T4 · Reorient · Newton
 - status: running
 - command: `scripts/train.sh reorient newton`
 - started: Thu 12 Nov ~09:35, log `~/runs/reorient_newton_full.log`. If there is no such process and no such log,
   it was never started: start it.
-- run_folder:
+- run_folder: `2026-11-12_09-31-46`
 - result:
 
 ### T5 · Speed benchmark (exclusive)
@@ -71,3 +71,4 @@ This file is the contract between the planning chat and the server agent.
 ## Agent notes
 
 <!-- The server agent adds dated one-line notes here, newest last. -->
+- 2026-11-12 10:10 UTC: T3 finished normally (no Traceback); backed up model_14999.pt, configs, final excerpt; set `done`. T4 resumes used: 0/2.

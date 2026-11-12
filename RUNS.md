@@ -10,8 +10,8 @@ Output folders are under `/workspace/isaaclab/logs/rsl_rl/dexsuite_kuka_allegro/
 | 2 | Lift | PhysX | 15,000 | `2026-11-11_11-08-26` | Wed 11:08 | Done | ~93–98% |
 | 3 | Lift | Newton | 15,000 (crashed at 10,234) | `2026-11-11_13-06-41` | Wed 13:06 | NaN crash | 73–89% at crash |
 | 4 | Lift | Newton | +5,000 (resume of #3 from `model_10000.pt`) | _resume folder_ | Wed ~23:22 | Done | ~86% |
-| 5 | Reorient | PhysX | 15,000 | _tbd_ | Wed 23:21 | Running | |
-| 6 | Reorient | Newton | 15,000 | _tbd_ | Thu ~09:35 | Running | |
+| 5 | Reorient | PhysX | 15,000 | `2026-11-11_23-23-11` | Wed 23:21 | Done (Thu ~10:02, 38,365 s) | ~4% (mean of last 500 its: 4.2%) |
+| 6 | Reorient | Newton | 15,000 | `2026-11-12_09-31-46` | Thu ~09:31 | Running | |
 
 Runs 2–3 and 4–5 shared one GPU, so their wall-clock times are not a fair speed comparison.
 
