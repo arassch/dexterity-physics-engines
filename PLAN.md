@@ -66,12 +66,39 @@ This file is the contract between the planning chat and the server agent.
 - result:
 
 ### T6 · Cross-evaluation · Lift 2×2
-- status: blocked
-- blocked on: `scripts/evaluate.py`, being written in the planning chat
+- status: todo
+- requires: at most one other GPU job running. Run the evaluations **one at a time**.
+- checkpoints (repo copies, final policies): PhysX `checkpoints/lift_physx/model_14999.pt`,
+  Newton `checkpoints/lift_newton/model_14999.pt`.
+- step 1, smoke test (16 envs, 32 episodes, a couple of minutes each):
+  `scripts/eval.sh smoke lift physx physx checkpoints/lift_physx/model_14999.pt`, then
+  `scripts/eval.sh smoke lift physx newton checkpoints/lift_physx/model_14999.pt`.
+  Check `results/cross_eval_smoke.csv` has a row per run with `episodes` ≥ 32 and a plausible `success_rate`.
+  If `scripts/evaluate.py` fails, you may fix **mechanical** bugs in it (imports, API names, argument handling,
+  reading `extras`), never what it measures. Record each fix in `notes/log.md`. After two failed fix attempts, set
+  `blocked` and put the error excerpt in STATUS.md.
+- step 2, the four cells, 1,024 episodes each, one after another (each takes minutes, not hours):
+  1. `scripts/eval.sh lift physx physx checkpoints/lift_physx/model_14999.pt`
+  2. `scripts/eval.sh lift physx newton checkpoints/lift_physx/model_14999.pt`
+  3. `scripts/eval.sh lift newton newton checkpoints/lift_newton/model_14999.pt`
+  4. `scripts/eval.sh lift newton physx checkpoints/lift_newton/model_14999.pt`
+- on done: write `results/cross_eval.md` with the 2×2 table (success rate with 95% interval, and the
+  `term_abnormal_robot` fraction in each cell), add "Finding 2" to `notes/log.md` with the numbers, fill in the
+  README's cross-evaluation table, and commit `results/cross_eval.csv` and `results/cross_eval_smoke.csv`.
+  Don't commit anything `evaluate.py` may have written next to the checkpoints.
+- result:
 
 ### T7 · Record training-progress videos · Lift
-- status: blocked
-- blocked on: confirming the play/video command for this Isaac Lab version
+- status: todo
+- requires: no `scripts/eval.sh` job running, and at most one other GPU job.
+- commands (each records several checkpoints in the background; wait for the one before to finish):
+  1. `scripts/record_videos.sh lift physx 2026-11-11_11-08-26 250 1000 3000 8000 14999`
+  2. `scripts/record_videos.sh lift newton 2026-11-11_13-06-41 250 1000 3000 8000 10000`
+  3. `scripts/record_videos.sh lift newton <Lift Newton resume folder, see RUNS.md> 14999`
+- clips land in `~/runs/videos/lift_<engine>/model_<N>.mp4`. **Don't commit the .mp4 files.** Write
+  `results/videos.md` listing each clip with its size and checkpoint, and note anything visible in the logs.
+  If no video is produced (camera/rendering error), set `blocked` with the error excerpt in STATUS.md.
+- result:
 
 ### T8 · Reorient timing run · PhysX · 4,096 envs (exclusive)
 - status: todo

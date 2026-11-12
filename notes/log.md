@@ -128,3 +128,10 @@ only -0.003). **Lift Newton went through the same phase and recovered** (from `l
 abnormal_robot 0.986 / 0.988 / 0.984 / 0.826 / 0.224 / 0.093 at iterations 500 / 1,000 / 1,500 / 2,000 / 2,500 / 3,000,
 episode length 25 → 275 by 2,500, success 0.40 by 4,500. So this is not yet a problem. Recheck T4 at ~3,000.
 It is still running (ETA ~7 h at ~1.13 s/iteration, now alone on the GPU).
+
+**Correction (planning chat, Thu 12 Nov):** the ADR curriculum (`dexsuite/mdp/curriculums.py`, `DifficultyScheduler`)
+raises an environment's difficulty by one level after **any successful episode** (the sticky `succeeded` flag of the
+`success` reward term) and lowers it otherwise. Earlier notes and slides said it needed orientations within
+`rot_std/2`; that was wrong. The conclusion for T3 stands: Reorient rarely succeeded, so ADR stayed near 0.
+Success itself (`dexsuite/mdp/rewards.py`, `success_reward`): thumb + at least one finger in contact with the object
+and position error < `pos_std` (and orientation error < `rot_std` for Reorient), at any step of the episode.
