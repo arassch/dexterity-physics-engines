@@ -1,0 +1,40 @@
+                            Total steps: 245760000 
+                       Steps per second: 7454 
+                        Collection time: 2.092s 
+                          Learning time: 0.106s 
+                        Mean value loss: 0.5513
+                    Mean surrogate loss: -0.0242
+                      Mean entropy loss: 50.8723
+                            Mean reward: 29.92
+                    Mean episode length: 337.22
+                        Mean action std: 2.29
+                   Metrics/success_rate: 0.9297
+               Episode_Reward/action_l2: -1.7073
+          Episode_Reward/action_rate_l2: -1.3752
+       Episode_Reward/fingers_to_object: 0.6002
+       Episode_Reward/position_tracking: 1.3034
+                 Episode_Reward/success: 5.3176
+       Episode_Reward/early_termination: -0.0001
+     Episode_Reward/good_finger_contact: 0.3829
+           Episode_Reward/contact_count: 0.5553
+                         Curriculum/adr: 0.9936
+     Metrics/object_pose/position_error: 0.0768
+  Metrics/object_pose/orientation_error: 2.3313
+           Episode_Termination/time_out: 0.9619
+Episode_Termination/object_out_of_bound: 0.0195
+     Episode_Termination/abnormal_robot: 0.0186
+--------------------------------------------------------------------------------
+                         Iteration time: 2.20s
+                           Time elapsed: 11:40:05
+                                    ETA: 00:00:00
+
+Training time: 42521.51 seconds
+[INFO]: SimulationContext cleared
+2026-11-11T11:08:23Z [9,495ms] [Warning] [carb.omniclient.plugin]  21564: OmniHub: ThreadId(02) Hub encountered error. Trying to reconnect to Hub. retry_reason="Hub failed to launch: Io(\"child exited with exit status: 1 without writing file \\\"/tmp/hub-ubuntu-D0AD454C.config.json\\\"\")"
+2026-11-11T11:08:23Z [9,937ms] [Warning] [carb.omniclient.plugin]  21564: OmniHub: ThreadId(02) Hub encountered error. Trying to reconnect to Hub. retry_reason="Hub failed to launch: Io(\"child exited with exit status: 1 without writing file \\\"/tmp/hub-ubuntu-D0AD454C.config.json\\\"\")"
+2026-11-11T11:08:24Z [10,788ms] [Warning] [omni.usd_config.extension] Enable omni.materialx.libs extension to use MaterialX
+2026-11-11T11:08:24Z [10,856ms] [Warning] [omni.platforminfo.plugin] failed to open the default display.  Can't verify X Server version.
+2026-11-11T11:08:26Z [12,463ms] [Warning] [isaaclab_rl_train_rsl_rl] IO descriptors are only supported for manager based RL environments. No IO descriptors will be exported.
+2026-11-11T11:08:27Z [14,268ms] [Warning] [isaaclab_physx.physics.physx_manager] TGS solver with enable_external_forces_every_iteration=False may cause noisy velocities.
+2026-11-11T11:08:36Z [22,915ms] [Warning] [usdrt.population.plugin] Last global time was not created. Did you call setEnableUsdNoticeHandling?
+[INFO] Using Python: "/workspace/isaaclab/_isaac_sim/python.sh"

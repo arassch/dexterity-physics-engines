@@ -1,0 +1,40 @@
+     Episode_Termination/abnormal_robot: 0.1468
+--------------------------------------------------------------------------------
+                         Iteration time: 2.24s
+                           Time elapsed: 03:01:02
+                                    ETA: 00:00:02
+
+################################################################################
+[1m                         Learning iteration 14999/15000                         [0m 
+
+                            Total steps: 81920000 
+                       Steps per second: 7624 
+                        Collection time: 1.985s 
+                          Learning time: 0.164s 
+                        Mean value loss: 0.3997
+                    Mean surrogate loss: -0.0238
+                      Mean entropy loss: 51.9297
+                            Mean reward: 37.77
+                    Mean episode length: 337.02
+                        Mean action std: 2.36
+                   Metrics/success_rate: 0.8594
+               Episode_Reward/action_l2: -1.2791
+          Episode_Reward/action_rate_l2: -1.2977
+       Episode_Reward/fingers_to_object: 0.5880
+       Episode_Reward/position_tracking: 1.3127
+                 Episode_Reward/success: 5.4898
+       Episode_Reward/early_termination: -0.0004
+     Episode_Reward/good_finger_contact: 0.3684
+           Episode_Reward/contact_count: 0.6836
+                         Curriculum/adr: 0.9829
+     Metrics/object_pose/position_error: 0.1780
+  Metrics/object_pose/orientation_error: 2.1816
+           Episode_Termination/time_out: 0.8619
+Episode_Termination/object_out_of_bound: 0.0020
+     Episode_Termination/abnormal_robot: 0.1361
+--------------------------------------------------------------------------------
+                         Iteration time: 2.15s
+                           Time elapsed: 03:01:04
+                                    ETA: 00:00:00
+
+Training time: 11215.36 seconds
