@@ -14,6 +14,10 @@ Output folders are under `/workspace/isaaclab/logs/rsl_rl/dexsuite_kuka_allegro/
 | 6 | Reorient | Newton | 15,000 (stopped at 3,315 by plan) | `2026-11-12_09-31-46` | Thu ~09:31 | Stopped Thu 10:49 (1 h 16 min) | 0% (abnormal_robot 0.10, ADR 0, reward 8.1, 1.09 s/it) |
 | 7 | Reorient | PhysX | 300 (timing, **4,096 envs**, T8) | `2026-11-12_11-11-43` | Thu 11:11 | Done, 931.65 s (15.5 min) | Median iteration 3.19 s, 41.1k steps/s, ~9.3 GB; success 0, ADR 0, abnormal_robot 0.010, mean reward 3.63 at 299 |
 | 8 | Reorient | Newton | 300 (timing, **4,096 envs**, T9) | `2026-11-12_11-32-53` | Thu 11:32 | Done, 520.61 s (8.7 min) | Median iteration 1.80 s, 72.8k steps/s, ~7.7 GB (early reading); success 0, ADR 0, abnormal_robot 0.079, mean reward 5.90 at 299 |
+| 9 | Lift | PhysX | 300 (speed benchmark, T5, alone on GPU) | `2026-11-12_11-46-23` | Thu 11:46 | Done, 594.88 s | Median iteration 1.98 s, 8,293 steps/s |
+| 10 | Lift | Newton | 300 (speed benchmark, T5, alone on GPU) | `2026-11-12_11-57-32` | Thu 11:57 | Done, 325.43 s | Median iteration 1.09 s, 15,073 steps/s; abnormal_robot 0.91 at 299 |
+| 11 | Reorient | PhysX | 15,000 max (**4,096 envs**, T10, shares GPU with #12) | `2026-11-12_22-18-09` | Thu 22:18 | Running | — |
+| 12 | Reorient | Newton | 15,000 max (**4,096 envs**, T11, shares GPU with #11) | `2026-11-12_22-19-43` | Thu 22:19 | Running | — |
 
 Runs 2–3 and 4–5 shared one GPU, so their wall-clock times are not a fair speed comparison.
 
@@ -30,6 +34,10 @@ scripts/train.sh reorient physx          # 5
 scripts/train.sh reorient newton         # 6
 scripts/train.sh reorient physx 300 --envs 4096   # 7
 scripts/train.sh reorient newton 300 --envs 4096  # 8
+scripts/train.sh lift physx 300                   # 9
+scripts/train.sh lift newton 300                  # 10
+scripts/train.sh reorient physx 15000 --envs 4096 # 11
+scripts/train.sh reorient newton 15000 --envs 4096 # 12
 ```
 
 The script expands to the command actually typed for each run, for example run 3:

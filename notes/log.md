@@ -276,3 +276,21 @@ How this lines up with the numbers (my reading, not Sara's):
   the Newton backend rather than a missing collider, but nobody has checked. Worth checking before the final video,
   since a floating cube with no table looks wrong on screen.
 - The "table turns red" moment is the goal changing. Not checked against the config yet.
+
+## 2026-11-12 22:25 UTC · T5 speed benchmark done (server agent)
+
+Lift, 512 envs, 300 iterations, each engine alone on the L40S. Medians over iterations 100–299:
+
+| | PhysX | Newton |
+|---|---|---|
+| Iteration time | 1.98 s | 1.09 s |
+| Steps per second | 8,293 | 15,073 |
+| Collection time | 1.865 s | 0.978 s |
+| Learning time | 0.105 s | 0.109 s |
+
+Newton is 1.82× faster in steps/s; the gap is all in collection, the PPO update costs the same. Same ratio as the
+Reorient 4,096-env timing runs (3.19 vs 1.80 s/it). Newton's run ended at iteration 299 with abnormal_robot 0.91
+(early training). Details: `results/speed_benchmark.md`.
+
+Note: nothing ran between ~12:03 and 22:16 UTC (T5 command 2 finished at 12:03; the last idle_stop.log line is
+12:18, "15/20 min"; no wake-up in between). T10 and T11 started at 22:18 and 22:19.

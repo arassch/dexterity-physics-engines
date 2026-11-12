@@ -58,7 +58,7 @@ This file is the contract between the planning chat and the server agent.
 - result: stopped at iteration 3,315 by plan (success 0, abnormal_robot 0.10 after recovering from ~0.99, ADR 0; backed up model_3250.pt)
 
 ### T5 · Speed benchmark (exclusive)
-- status: running
+- status: done
 - requires: T4, T8 and T9 not `running` or `todo`, and no other GPU job running (exclusive)
 - commands, one after the other, each alone on the GPU:
   1. `scripts/train.sh lift physx 300`
@@ -66,7 +66,7 @@ This file is the contract between the planning chat and the server agent.
 - on done: write `results/speed_benchmark.md` with, for each engine, the median "Iteration time", "Steps per second",
   "Collection time" and "Learning time" over iterations 100–299, plus GPU name. No checkpoints to back up.
 - run_folder: command 1 `2026-11-12_11-46-23` (log `~/runs/lift_physx_300.log`); command 2 `2026-11-12_11-57-32` (log `~/runs/lift_newton_300.log`)
-- result:
+- result: median iteration PhysX 1.98 s vs Newton 1.09 s (8,293 vs 15,073 steps/s; collection 1.865 vs 0.978 s, learning 0.105 vs 0.109 s), L40S; see `results/speed_benchmark.md`
 
 ### T6 · Cross-evaluation · Lift 2×2
 - status: done
@@ -141,7 +141,7 @@ This file is the contract between the planning chat and the server agent.
 - result: median iteration 1.80 s (collection 1.53 s, learning 0.27 s), 72.8k steps/s, ~7.7 GB; success 0, ADR 0 at 300; 15,000 its ≈ 7.5 h ≈ $27.4 (likely low, still drifting up); see `results/reorient_4096_timing.md`
 
 ### T10 · Reorient · PhysX · 4,096 envs (full run)
-- status: todo
+- status: running
 - decided Thu 12 Nov 11:54: run T10 and T11 **at the same time**, 15,000 iterations max, with the early-stop rule below.
 - requires: T5 not `running` or `todo` (T5 is exclusive). Start T10 and T11 in the same wake-up, one right after
   the other (wait ~1 minute between them so they don't load at the same moment).
@@ -155,16 +155,16 @@ This file is the contract between the planning chat and the server agent.
   `configs/reorient_physx_4096/` and `results/log_excerpts/reorient_physx_4096_final.txt` (the 512-env T3 run keeps
   the `reorient_physx` names). Result: final/stop iteration, success (last-500 mean), abnormal_robot, ADR, reward,
   iteration time while sharing the GPU.
-- run_folder:
+- run_folder: `2026-11-12_22-18-09` (log `~/runs/reorient_physx_15000_4096envs.log`)
 - result:
 
 ### T11 · Reorient · Newton · 4,096 envs (full run)
-- status: todo
+- status: running
 - same decision, requirements, early-stop rule and crash policy as T10; start together with T10.
 - command: `scripts/train.sh reorient newton 15000 --envs 4096`
 - back up into `checkpoints/reorient_newton_4096/`, `configs/reorient_newton_4096/`,
   `results/log_excerpts/reorient_newton_4096_final.txt`.
-- run_folder:
+- run_folder: `2026-11-12_22-19-43` (log `~/runs/reorient_newton_15000_4096envs.log`)
 - result:
 
 ### T13 · Cross-evaluation · Reorient 2×2
@@ -190,3 +190,4 @@ This file is the contract between the planning chat and the server agent.
 - 2026-11-12 11:36 UTC: T12 both clips recorded (no errors), set `done`. GPU idle, so started T9 (reorient newton 300, 4,096 envs, exclusive); iterating.
 - 2026-11-12 11:48 UTC: T9 finished normally (520.61 s); backed up configs + final excerpt (no checkpoint, timing run), added Newton column to `results/reorient_4096_timing.md`, set `done`. T10/T11 left on hold as T9 says. T5 requirements now met (GPU idle), so started T5 command 1 (lift physx 300, folder `2026-11-12_11-46-23`); iterating.
 - 2026-11-12 12:00 UTC: T5 command 1 finished normally (594.88 s). Started T5 command 2 (lift newton 300, folder `2026-11-12_11-57-32`); iterating. T10/T11 wait for T5.
+- 2026-11-12 22:25 UTC: T5 command 2 found finished normally (325.43 s); wrote `results/speed_benchmark.md`, set T5 `done`. Started T10 (folder `2026-11-12_22-18-09`) and T11 (folder `2026-11-12_22-19-43`), both iterating. Resumes used: T10 0/2, T11 0/2.
