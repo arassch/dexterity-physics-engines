@@ -24,6 +24,66 @@
 - PhysX start-up warning: *"TGS solver with enable_external_forces_every_iteration=False may cause noisy velocities."*
   Check whether the trained policy depends on this, e.g. by evaluating with the flag flipped.
 
-**Next**
-- Full Lift run on PhysX (15,000 iterations, seed 42) started ~11:10.
-- 2026-11-11: cloned on Brev box
+**Full runs started**
+- Lift · PhysX, 15,000 iterations, seed 42: run `2026-11-11_11-08-26`.
+- Lift · Newton, same settings with `physics=newton_mjwarp`: run `2026-11-11_13-06-41`, sharing the GPU with the PhysX run.
+- Repo cloned on the Brev box; pushes work through VS Code's built-in GitHub sign-in (device code), no token stored.
+
+**Lift · PhysX: finished (late evening)**
+- Final training metrics (last iterations, exploration noise on): success rate **~93–98%**, mean reward ~30,
+  ADR level **0.99**, `abnormal_robot` terminations **~2%**.
+- Progression: reaching by ~300 iterations; `good_finger_contact` 0.001 → 0.14 between iterations 300 and ~1,000
+  (grasping starts, reward turns positive); lifting to target comes later.
+- Speed: ~2.15 s/iteration on its own on the L40S (GPU ~64% busy, 5.3 of 46 GB used).
+
+**Lift · Newton: NaN crash at iteration 10,234**
+- RSL-RL stopped with: `ValueError: The observation group 'proprio' ... contains NaN values`.
+  The simulation diverged in at least one environment.
+- Last iterations before the crash: success 73–89%, `abnormal_robot` **~19%**, ADR **0.97**, action std **1.96**,
+  action penalties ≈ −1.0. Large actions under near-maximum randomisation, with MuJoCo Warp going unstable.
+- The crash happened around 19:00 and was only noticed at 23:13, so that GPU slot sat idle ~4 h.
+  (Motivation for `scripts/idle_stop.sh` and for checking runs more often.)
+- Resumed from `model_10000.pt` with `--resume --load_run 2026-11-11_13-06-41 --checkpoint model_10000.pt`.
+  On resume, `agent.max_iterations` means *additional* iterations, so it was set to 5,000.
+
+## 2026-11-12: Lift done on both engines
+
+**Lift · Newton: finished after resume**
+- Final training metrics: success rate **~86%**, mean reward ~38, ADR **0.98**, `abnormal_robot` **~14%**.
+- No further NaN after resuming, even with ADR back near maximum. So high ADR alone doesn't trigger the divergence.
+
+**Finding 1: Newton has ~7× more abnormal-robot terminations than PhysX, at the same ADR level**
+
+| | PhysX | Newton |
+|---|---|---|
+| Training success (final) | ~93–98% | ~86% |
+| `abnormal_robot` terminations | ~2% | ~14% |
+| ADR level (final) | 0.99 | 0.98 |
+| NaN divergences | 0 | 1 (iteration 10,234) |
+
+Both trained under equally hard randomisation, so the difference comes from the engine, not the curriculum.
+Training-time numbers include exploration noise; the deterministic cross-evaluation (Part 3) is the fair measurement.
+Open question for Part 4: *what* goes abnormal (joint limits? penetration recovery? contact jitter?).
+Plan: record abnormal episodes in slow motion and log contact forces and joint velocities.
+
+**Fairness check: the PhysX and Newton configs differ only in the solver**
+- Diffed `configs/lift_physx/env.yaml` against `configs/lift_newton/env.yaml`, and `agent.yaml` likewise.
+- Identical on both: physics `dt = 1/120 s` (**120 Hz**), `decimation = 2` (policy at **60 Hz**), **6 s** episodes,
+  512 envs, rewards, observations, actions, randomisation and ADR settings, and all PPO settings.
+- Differences (solver only):
+  - PhysX: TGS (`solver_type: 1`), up to 255 position / 255 velocity iterations,
+    `enable_external_forces_every_iteration: false` (the "noisy velocities" warning), CCD off.
+  - Newton: MuJoCo Warp, `implicitfast` integrator, elliptic friction cone, `impratio: 10`, 100 solver iterations,
+    15 line-search iterations, **`num_substeps: 2`** (so effectively 240 Hz physics inside each 120 Hz step).
+- So "higher reward but lower success on Newton" is *not* from longer episodes. Still to explain.
+
+**Operational notes**
+- Two training runs share one L40S fine. Speed per run drops, total throughput goes up, and the machine cost is shared.
+  Speed comparisons between engines therefore need separate, isolated benchmark runs.
+- Checkpoints are saved every 250 iterations, ~25 MB each (they include optimiser state).
+  The repo keeps only the video milestones (250, 1000, 3000, 8000) and the final checkpoint per run.
+- Mistake to avoid: picking a run folder by grepping configs for "physx" matched the 300-iteration *timing* run first.
+  Identify runs by start time / log_dir, or by the folder that contains the final `model_14999.pt`.
+- In the VS Code container `$HOME` is `/root`, so `~/runs` is `/root/runs`.
+
+**Reorient · PhysX** started 23:21 (Wed), at 14,225 / 15,000 by 09:22. Faster than expected.

@@ -1,6 +1,6 @@
 # Does a dexterous policy survive a change of physics?
 
-**Status: work in progress (Part 1 of 4: PhysX baseline training).**
+**Status: work in progress. Lift trained on both engines; Reorient training; cross-evaluation next.**
 
 A policy that only works in one physics solver has learned the solver, not the task.
 This project trains a dexterous manipulation policy (a Kuka arm with a four-finger Allegro hand)
@@ -21,6 +21,7 @@ Isaac Lab's **DexSuite** environments, on a Kuka arm with an Allegro hand:
 
 - **Observations:** robot joint state, object state, target, with a 5-step history (no cameras: `state` observations)
 - **Actions:** joint position targets for 7 arm joints and 16 finger joints, tracked by PD controllers
+- **Timing (identical on both engines):** physics at 120 Hz, policy at 60 Hz (decimation 2), 6 s episodes
 - **Learning:** PPO (RSL-RL), 512 parallel environments
 - **Object:** a single cube (`presets=cube`) on **both** engines. Newton doesn't support the multi-shape spawning the default uses, so the cube keeps the comparison fair.
 
@@ -35,6 +36,20 @@ Isaac Lab's **DexSuite** environments, on a Kuka arm with an Allegro hand:
 
 ## Results
 
+### Training (Parts 1–2)
+
+Final training metrics, with exploration noise on (deterministic evaluation comes in Part 3):
+
+| Task | Engine | Success rate | `abnormal_robot` terminations | ADR level | NaN crashes |
+|---|---|---|---|---|---|
+| Lift | PhysX | ~93–98% | ~2% | 0.99 | 0 |
+| Lift | Newton | ~86% | ~14% | 0.98 | 1 (resumed from iteration 10,000) |
+| Reorient | PhysX | _training_ | | | |
+| Reorient | Newton | _next_ | | | |
+
+**Finding so far:** at the same curriculum difficulty, Newton ends ~7× more episodes with the robot in an
+abnormal state, and diverged to NaN once. Configs differ only in the solver block (see [`notes/log.md`](notes/log.md)).
+
 ### Cross-evaluation (Part 3)
 
 | Success rate | Run in PhysX | Run in Newton |
@@ -47,7 +62,10 @@ Isaac Lab's **DexSuite** environments, on a Kuka arm with an Allegro hand:
 | Run | Engine | Envs | Time per iteration | Iterations | Wall clock | GPU |
 |---|---|---|---|---|---|---|
 | Lift timing run | PhysX | 512 | ~2.0 s | 300 | 10 min | 1× L40S |
-| Lift full run | PhysX | 512 | _tbd_ | 15,000 | _tbd_ (~8.3 h expected) | 1× L40S |
+| Lift full run | PhysX | 512 | ~2.15 s (alone) | 15,000 | ~11.5 h (GPU shared from 13:06) | 1× L40S |
+| Lift full run | Newton | 512 | ~2.1 s (shared) | 15,000 | ~6 h + resume after NaN crash | 1× L40S |
+
+Speed figures from shared-GPU runs aren't a fair engine comparison; isolated benchmark runs are planned.
 
 ## Reproducing
 
