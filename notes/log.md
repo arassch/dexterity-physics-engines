@@ -243,3 +243,36 @@ abnormal_robot 0.0787 (PhysX 0.0097), object_out_of_bound 0.152, mean reward 5.9
 Estimate for 15,000 iterations: 27,000 s ≈ 7.5 h ≈ $27.4 at $3.65/hr. Same upward drift as PhysX: 1.56 s at 19 →
 1.59 s at 99 → 1.81 s at 199 → 1.96 s at 299 (episode length 28 → 245 → 301), still rising at the end, so the estimate
 is probably low (at 1.96 s: 8.2 h ≈ $29.8). Details in `results/reorient_4096_timing.md`.
+
+## 2026-11-12 14:39 UTC: what the T7 and T12 clips show (Sara watched them)
+
+Sara's observations, as she described them (4 envs per clip, 360 steps, seed 42):
+
+**Lift, PhysX policy in PhysX** (2 robots visible, each with a table in front):
+- 250: fails.
+- 1,000: tries to grab, but can't pick up. 3,000: same.
+- 8,000: successful pickup. The target position changes twice during the clip (the table turns red when it happens).
+- 14,999: same as 8,000.
+
+**Lift, Newton policy in Newton** (2 robots visible, **no table visible**):
+- 250: fails; each time it fails the cube reappears in a different place and it fails again. 1,000: same.
+- 3,000: tries to grab, but can't pick up; sometimes the cube reappears somewhere else.
+- 8,000: success; the target position changes during the clip. 10,000 and 14,999: same.
+
+**T12 transfer clips:**
+- PhysX policy in Newton: fails to pick up and restarts from a different place. No table visible.
+- Newton policy in PhysX: the arms move wildly and don't even touch the cube. The table is visible.
+
+How this lines up with the numbers (my reading, not Sara's):
+- The progression matches the training curves: no grasp at 250, reaching without lifting at 1,000–3,000, reliable
+  lifts by 8,000, little visible change after that.
+- "The cube reappears somewhere else" in Newton is an episode reset. It matches the early terminations in the
+  numbers: PhysX → Newton ended 98.3% of episodes on `abnormal_robot` after ~23 steps (T6), and Newton's own training
+  had ~14% abnormal resets (Finding 1).
+- "Arms going crazy" for Newton → PhysX matches T6: 0% success, 65.5% time-outs, 22.9% abnormal_robot. The policy
+  keeps moving without reaching the cube, so most episodes run to the time limit.
+- **Open question: the table isn't rendered in the Newton clips** (seen in both Newton clips, present in both PhysX
+  clips). The policies behave as if there is something to push against, so it's probably a rendering difference with
+  the Newton backend rather than a missing collider, but nobody has checked. Worth checking before the final video,
+  since a floating cube with no table looks wrong on screen.
+- The "table turns red" moment is the goal changing. Not checked against the config yet.
