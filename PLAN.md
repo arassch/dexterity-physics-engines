@@ -24,6 +24,12 @@ This file is the contract between the planning chat and the server agent.
 - When a training run finishes: back it up (see CLAUDE.md), record final metrics, set `done`.
 - Start `todo` tasks in the order listed, as soon as their requirements are met.
 
+## Answers from humans
+
+- 2026-11-12 22:30: the 12:03–22:16 idle gap wasn't a watcher bug. The Claude token allowance ran out, so no wake-up
+  could run, and Sara stopped the instance. Nothing to fix; drop it from "Needs a human". Leave the T8/T9 `model_299.pt`
+  files on the server (no need in the repo). Sara has watched the T7/T12 clips (her notes are in `notes/log.md`).
+
 ## Tasks
 
 ### T1 · Lift · PhysX baseline
