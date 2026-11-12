@@ -10,7 +10,10 @@ This file is the contract between the planning chat and the server agent.
 
 ## Rules
 
-- At most **2** GPU jobs at the same time. A task marked `exclusive` needs the GPU to itself.
+- GPU job limits (changed Thu 12 Nov 10:47, to make better use of the machine): at most **2 training runs**
+  (`scripts/train.sh`) **plus up to 4 evaluation/video jobs** (`scripts/eval.sh`, `scripts/record_videos.sh`) at the
+  same time. A task marked `exclusive` still needs the GPU to itself (no other job of any kind). Don't start a new job
+  if `nvidia-smi` shows more than 40 GB of the 46 GB in use.
 - Defaults for every training run: 512 envs, seed 42, `presets=cube`, 15,000 iterations. Never change rewards, configs
   or these defaults unless a task here says so. **Exception (decided Thu 12 Nov): Reorient from T8 on uses 4,096 envs**
   (NVIDIA's default for Reorient), via `--envs 4096`. Lift stays at 512.
@@ -70,7 +73,7 @@ This file is the contract between the planning chat and the server agent.
 - note (planning chat, 10:35): `scripts/eval.sh` and `scripts/record_videos.sh` are in the allow-list in
   `scripts/agent_tick.sh` since commit bbcf783; your 10:30 wake-up started before you pulled it. No watcher restart
   needed. Go ahead with T6, then T7. Stopping T4 at 3,000 still takes priority when you see it.
-- requires: at most one other GPU job running. Run the evaluations **one at a time**.
+- requires: the GPU job limits above. The four step-2 cells may run **at the same time** (they're independent).
 - checkpoints (repo copies, final policies): PhysX `checkpoints/lift_physx/model_14999.pt`,
   Newton `checkpoints/lift_newton/model_14999.pt`.
 - step 1, smoke test (16 envs, 32 episodes, a couple of minutes each):
@@ -80,7 +83,7 @@ This file is the contract between the planning chat and the server agent.
   If `scripts/evaluate.py` fails, you may fix **mechanical** bugs in it (imports, API names, argument handling,
   reading `extras`), never what it measures. Record each fix in `notes/log.md`. After two failed fix attempts, set
   `blocked` and put the error excerpt in STATUS.md.
-- step 2, the four cells, 1,024 episodes each, one after another (each takes minutes, not hours):
+- step 2, the four cells, 1,024 episodes each, started together (each takes minutes, not hours):
   1. `scripts/eval.sh lift physx physx checkpoints/lift_physx/model_14999.pt`
   2. `scripts/eval.sh lift physx newton checkpoints/lift_physx/model_14999.pt`
   3. `scripts/eval.sh lift newton newton checkpoints/lift_newton/model_14999.pt`
@@ -93,7 +96,7 @@ This file is the contract between the planning chat and the server agent.
 
 ### T7 · Record training-progress videos · Lift
 - status: todo
-- requires: no `scripts/eval.sh` job running, and at most one other GPU job.
+- requires: the GPU job limits above; may run alongside the T6 cells.
 - commands (each records several checkpoints in the background; wait for the one before to finish):
   1. `scripts/record_videos.sh lift physx 2026-11-11_11-08-26 250 1000 3000 8000 14999`
   2. `scripts/record_videos.sh lift newton 2026-11-11_13-06-41 250 1000 3000 8000 10000`
