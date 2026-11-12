@@ -67,6 +67,9 @@ This file is the contract between the planning chat and the server agent.
 
 ### T6 · Cross-evaluation · Lift 2×2
 - status: todo
+- note (planning chat, 10:35): `scripts/eval.sh` and `scripts/record_videos.sh` are in the allow-list in
+  `scripts/agent_tick.sh` since commit bbcf783; your 10:30 wake-up started before you pulled it. No watcher restart
+  needed. Go ahead with T6, then T7. Stopping T4 at 3,000 still takes priority when you see it.
 - requires: at most one other GPU job running. Run the evaluations **one at a time**.
 - checkpoints (repo copies, final policies): PhysX `checkpoints/lift_physx/model_14999.pt`,
   Newton `checkpoints/lift_newton/model_14999.pt`.
