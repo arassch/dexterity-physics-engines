@@ -70,7 +70,7 @@ Speed figures from shared-GPU runs aren't a fair engine comparison; isolated ben
 ## Reproducing
 
 See [`setup/ENVIRONMENT.md`](setup/ENVIRONMENT.md) for the exact software versions and cloud setup,
-and [`scripts/`](scripts/) for every command that was run.
+[`RUNS.md`](RUNS.md) for every training run and its exact command, and [`scripts/`](scripts/) for the scripts.
 
 ## Working notes
 

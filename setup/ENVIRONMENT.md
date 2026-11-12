@@ -2,15 +2,26 @@
 
 ## Software
 
+Isaac Lab in the launchable is installed from a container image, not a git clone, so there is no commit hash.
+These are the exact versions used (from `cat /workspace/isaaclab/VERSION` and `./isaaclab.sh -p -m pip list`):
+
 | Component | Version |
 |---|---|
 | Isaac Sim | 6.0.1 |
-| Isaac Lab | 3.0.0-beta2-post1 (commit: _fill in with `git -C /workspace/isaaclab rev-parse HEAD`_) |
-| RL library | RSL-RL (PPO), via `./isaaclab.sh train --rl_library rsl_rl` |
+| Isaac Lab (`VERSION`) | 3.0.0 (launchable labels it 3.0.0-beta2-post1) |
+| `isaaclab` | 6.1.16 |
+| `isaaclab_tasks` (DexSuite lives here) | 1.10.9 |
+| `isaaclab_rl` | 0.5.7 |
+| `isaaclab_physx` | 1.1.3 |
+| `isaaclab_newton` | 0.13.6 |
+| `newton` | 1.2.1 |
+| `mujoco` / `mujoco-warp` | 3.8.1 / 3.8.1 |
+| `warp-lang` | 1.13.0 |
+| `rsl-rl-lib` (PPO) | 5.0.1 |
+| `torch` | 2.10.0+cu128 |
 | NVIDIA driver | 595.71.05 (CUDA 13.2) |
 
 Isaac Lab 3.0 is in beta, so task names and command-line flags may change between releases.
-Pin the commit above when reproducing.
 
 ## Hardware and cloud
 
