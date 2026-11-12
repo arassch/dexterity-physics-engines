@@ -65,7 +65,7 @@ This file is the contract between the planning chat and the server agent.
   2. `scripts/train.sh lift newton 300`
 - on done: write `results/speed_benchmark.md` with, for each engine, the median "Iteration time", "Steps per second",
   "Collection time" and "Learning time" over iterations 100–299, plus GPU name. No checkpoints to back up.
-- run_folder: command 1 `2026-11-12_11-46-23` (log `~/runs/lift_physx_300.log`)
+- run_folder: command 1 `2026-11-12_11-46-23` (log `~/runs/lift_physx_300.log`); command 2 `2026-11-12_11-57-32` (log `~/runs/lift_newton_300.log`)
 - result:
 
 ### T6 · Cross-evaluation · Lift 2×2
@@ -189,3 +189,4 @@ This file is the contract between the planning chat and the server agent.
 - 2026-11-12 11:31 UTC: T8 finished normally (931.65 s); backed up configs + final excerpt (no checkpoint, timing run), wrote `results/reorient_4096_timing.md`, set `done`. Started T12 command 1 (PhysX policy in Newton).
 - 2026-11-12 11:36 UTC: T12 both clips recorded (no errors), set `done`. GPU idle, so started T9 (reorient newton 300, 4,096 envs, exclusive); iterating.
 - 2026-11-12 11:48 UTC: T9 finished normally (520.61 s); backed up configs + final excerpt (no checkpoint, timing run), added Newton column to `results/reorient_4096_timing.md`, set `done`. T10/T11 left on hold as T9 says. T5 requirements now met (GPU idle), so started T5 command 1 (lift physx 300, folder `2026-11-12_11-46-23`); iterating.
+- 2026-11-12 12:00 UTC: T5 command 1 finished normally (594.88 s). Started T5 command 2 (lift newton 300, folder `2026-11-12_11-57-32`); iterating. T10/T11 wait for T5.
