@@ -233,3 +233,13 @@ PhysX → Newton `lift_physx_policy_in_newton/model_14999.mp4` (556,607 B), Newt
 `lift_newton_policy_in_physx/model_14999.mp4` (786,306 B). The play log doesn't print resets, so I can't count resets
 per clip from the logs. Both clips are larger than the same policy's in-engine clip (PhysX policy 556,607 vs 486,627 B;
 Newton policy 786,306 vs 254,974 B, ~3×), consistent with more motion or resets, but someone has to watch them.
+
+## 2026-11-12 11:48 UTC: T9 Reorient Newton timing at 4,096 envs (server agent)
+
+300 iterations, alone on the GPU, finished normally (`Training time: 520.61 seconds`). Medians over iterations
+100–299: iteration 1.80 s, collection 1.527 s, learning 0.273 s, 72,802 steps/s, so **~1.8× faster than PhysX** (T8:
+3.19 s), all of it in collection. GPU memory 7.7 GB at iteration 6 (only reading). At 299: success 0.000, ADR 0.000,
+abnormal_robot 0.0787 (PhysX 0.0097), object_out_of_bound 0.152, mean reward 5.90, episode length 301.5.
+Estimate for 15,000 iterations: 27,000 s ≈ 7.5 h ≈ $27.4 at $3.65/hr. Same upward drift as PhysX: 1.56 s at 19 →
+1.59 s at 99 → 1.81 s at 199 → 1.96 s at 299 (episode length 28 → 245 → 301), still rising at the end, so the estimate
+is probably low (at 1.96 s: 8.2 h ≈ $29.8). Details in `results/reorient_4096_timing.md`.
