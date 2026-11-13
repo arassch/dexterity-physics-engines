@@ -450,3 +450,24 @@ episode length 339, 6.6 s/it sharing the GPU.
 T11 at 14,483: success 60.5%, ADR 0.8439 (from 0.8195), reward 8.83, episode length 266, 3.8 s/it.
 abnormal_robot 500-it mean 0.281 (0.268 at check #9). Margin +9.0 → +6.4 pp, still above 2 pp; ~520 iterations
 left, so it should finish normally in ~35 min. No NaN or Traceback in either log.
+
+## 2026-11-13 14:14 UTC · T11 finished; T10 early-stop check #7 (server agent)
+
+**T11 (Reorient, Newton, 4,096 envs) finished normally** at iteration 14,999 (`Training time: 57142.06 seconds`,
+15.9 h, no NaN, no Traceback, 0 resumes). Backed up `checkpoints/reorient_newton_4096/model_14999.pt`, configs and
+`results/log_excerpts/reorient_newton_4096_final.txt`.
+
+| Metric (training-time, includes exploration noise) | Last-500 mean (14,500–14,999) | Iteration 14,999 |
+|---|---|---|
+| `Metrics/success_rate` | 64.65% | 66.01% |
+| `Episode_Termination/abnormal_robot` | 0.300 | 0.296 |
+| `Curriculum/adr` | — | 0.8525 |
+| Mean reward | 9.07 | 9.47 |
+| Iteration time (sharing GPU with T10) | 3.92 s | 4.03 s |
+
+Last window vs 12,500–12,999 (62.00%): +2.65 pp, so the gain was flattening near the end. Compared with the 512-env
+T4 run (0% success at 3,315), 4,096 envs made Reorient learnable on Newton. abnormal_robot stays high (~30%, vs ~1%
+for T10 PhysX), like Lift Newton (~14%).
+
+**T10 check #7** (training-time success, 500-it means): 25.05% (7,864–8,363) vs 14.23% (5,864–6,363) → **+10.81 pp,
+keep running**. At 8,363: success 27.5%, abnormal_robot 0.010, ADR 0.0576, reward 11.20. Now alone on the GPU.
