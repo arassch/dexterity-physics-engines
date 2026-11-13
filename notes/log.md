@@ -483,3 +483,7 @@ abnormal_robot 0.012, ADR 0.130, reward 9.24 (down from ~11 at check #8 while AD
 **T10 check #10** (2026-11-13 17:17 UTC, training-time success, 500-it means): 37.78% (11,372–11,871) vs 32.72%
 (9,372–9,871) → **+5.06 pp, keep running**. Margin still shrinking (+7.36 → +5.06 pp). At 11,868: success 41.1%,
 abnormal_robot 0.015, ADR 0.186, reward 9.90, 3.19 s/it alone on the GPU.
+
+**T10 check #11** (2026-11-13 18:18 UTC, training-time success, 500-it means): 42.24% (12,526–13,025) vs 34.88%
+(10,526–11,025) → **+7.35 pp, keep running**. Margin grew again (+5.06 → +7.35 pp). At 13,025: success 41.3%,
+abnormal_robot 0.010, ADR 0.273, reward 10.83, 3.15 s/it alone on the GPU.
