@@ -320,3 +320,21 @@ exploration noise), 500 iterations each:
 
 Improvement +12.13 pp ≥ 2 pp, so **keep running**. Current: abnormal_robot 0.090, ADR 0.0402, 3.6 s/it sharing
 the GPU. T10 (PhysX) is at 3,671 (single-iteration success 4.9%, ADR 0.0068), still before its first check at 5,000.
+
+## 2026-11-13 06:30 UTC · T11 early-stop check #3 (server agent)
+
+T11 (Reorient Newton, 4,096 envs) at iteration 7,968. Mean training-time `Metrics/success_rate` (includes
+exploration noise), 500 iterations each:
+
+| Window | Iterations | Mean success |
+|---|---|---|
+| Recent | 7,470–7,969 | 31.35% |
+| 2,000 earlier | 5,470–5,969 | 11.17% |
+
+Improvement +20.19 pp ≥ 2 pp, so **keep running**. Current (single iteration): success 37.1%, ADR 0.0995 (from
+0.0402 at 6,966), 3.5–3.7 s/it sharing the GPU.
+
+Something to watch: `Episode_Termination/abnormal_robot` is rising alongside ADR. Means per 500 iterations:
+5,000–5,499 0.080 · 5,500–5,999 0.085 · 6,000–6,499 0.090 · 6,500–6,999 0.092 · 7,000–7,499 0.109 ·
+7,500–7,968 0.133 (last iteration 0.160). No NaN or Traceback so far. T10 (PhysX) is at 4,196 (success 7.9%,
+abnormal_robot 0.013, ADR 0.0087), still before its first check at 5,000.
