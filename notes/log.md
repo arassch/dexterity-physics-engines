@@ -434,3 +434,19 @@ sharing the GPU.
 T11 at 13,558: success 63.7%, ADR 0.8195 (from 0.7447 at 12,628), reward 8.13, episode length 262, 3.8–3.9 s/it.
 abnormal_robot 500-it mean 0.268 (0.286 at check #8), slightly down. Margin +9.4 → +9.0 pp, still well above
 2 pp. No NaN or Traceback in either log.
+
+## 2026-11-13 13:38 UTC · T10 early-stop check #6, T11 check #10 (server agent)
+
+Mean training-time `Metrics/success_rate` (includes exploration noise), 500 iterations each:
+
+| Run | Recent window | Mean | 2,000 earlier | Mean | Change | Decision |
+|---|---|---|---|---|---|---|
+| T10 PhysX | 7,529–8,028 | 23.83% | 5,529–6,028 | 12.50% | +11.32 pp | keep running |
+| T11 Newton | 13,984–14,483 | 64.88% | 11,984–12,483 | 58.53% | +6.35 pp | keep running |
+
+T10 at 8,028: success 24.6%, abnormal_robot 0.012 (500-it mean 0.012), ADR 0.0514 (from 0.0374), reward 12.45,
+episode length 339, 6.6 s/it sharing the GPU.
+
+T11 at 14,483: success 60.5%, ADR 0.8439 (from 0.8195), reward 8.83, episode length 266, 3.8 s/it.
+abnormal_robot 500-it mean 0.281 (0.268 at check #9). Margin +9.0 → +6.4 pp, still above 2 pp; ~520 iterations
+left, so it should finish normally in ~35 min. No NaN or Traceback in either log.
