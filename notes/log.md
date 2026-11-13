@@ -294,3 +294,16 @@ Reorient 4,096-env timing runs (3.19 vs 1.80 s/it). Newton's run ended at iterat
 
 Note: nothing ran between ~12:03 and 22:16 UTC (T5 command 2 finished at 12:03; the last idle_stop.log line is
 12:18, "15/20 min"; no wake-up in between). T10 and T11 started at 22:18 and 22:19.
+
+## 2026-11-13 04:28 UTC · T11 early-stop check #1 (server agent)
+
+T11 (Reorient Newton, 4,096 envs) at iteration 5,964. Mean training-time `Metrics/success_rate` (includes
+exploration noise), 500 iterations each:
+
+| Window | Iterations | Mean success |
+|---|---|---|
+| Recent | 5,465–5,964 | 11.13% |
+| 2,000 earlier | 3,465–3,964 | 5.34% |
+
+Improvement +5.78 pp ≥ 2 pp, so **keep running**. Current: abnormal_robot 0.091, ADR 0.0175, 3.5–3.7 s/it sharing
+the GPU. T10 (PhysX) is at 3,147, so no check for it yet.
