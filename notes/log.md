@@ -371,3 +371,18 @@ abnormal_robot 0.014, ADR 0.0130, reward 13.25, 6.5–6.7 s/it sharing the GPU.
 T11's gain is slowing (+20.5 pp at check #4 → +14.4 pp now). ADR jumped 0.2156 → 0.3512 in ~930 iterations. Mean
 reward fell 11.27 → 8.94 and mean episode length is 262.7. abnormal_robot 500-it mean 0.254 (iteration 9,833:
 0.242). Iteration time 3.7–3.9 s. No NaN or Traceback in either log.
+
+## 2026-11-13 09:34 UTC · T10 early-stop check #2, T11 check #6 (server agent)
+
+Mean training-time `Metrics/success_rate` (includes exploration noise), 500 iterations each:
+
+| Run | Recent window | Mean | 2,000 earlier | Mean | Change | Decision |
+|---|---|---|---|---|---|---|
+| T10 PhysX | 5,342–5,841 | 11.60% | 3,342–3,841 | 5.97% | +5.63 pp | keep running |
+| T11 Newton | 10,262–10,761 | 49.79% | 8,262–8,761 | 37.66% | +12.13 pp | keep running |
+
+T10 at 5,843: success 10.3%, abnormal_robot 0.010 (500-it mean 0.012), ADR 0.0169, reward 12.57, 6.7 s/it sharing
+the GPU.
+
+T11 at 10,764: success 55.3%, ADR 0.5172 (from 0.3512 at 9,833), reward 9.26, episode length 290, 3.8–3.9 s/it.
+abnormal_robot keeps rising with ADR: 500-it mean 0.289 (was 0.254 at check #5). No NaN or Traceback in either log.
