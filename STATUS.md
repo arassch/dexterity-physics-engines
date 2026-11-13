@@ -1,20 +1,20 @@
 # Status
-Updated: 2026-11-13 04:29 UTC by the server agent (wake-up: heartbeat)
+Updated: 2026-11-13 05:29 UTC by the server agent (wake-up: heartbeat)
 
 ## GPU jobs
 | Task | Engine | Iteration | Success | abnormal_robot | ADR | ETA |
 |---|---|---|---|---|---|---|
-| T10 Reorient, 4,096 envs | PhysX | 3147/15000 | 0.073 | 0.012 | 0.0066 | ~22.7 h (6.9–7.0 s/it sharing GPU) |
-| T11 Reorient, 4,096 envs | Newton | 5964/15000 | 0.121 | 0.091 | 0.0175 | ~9.1 h (3.5–3.7 s/it sharing GPU) |
+| T10 Reorient, 4,096 envs | PhysX | 3671/15000 | 0.049 | 0.010 | 0.0068 | ~21.8 h (6.8–7.0 s/it sharing GPU) |
+| T11 Reorient, 4,096 envs | Newton | 6966/15000 | 0.196 | 0.090 | 0.0402 | ~8.1 h (3.6 s/it sharing GPU) |
 
-GPU: 17.1 GB / 46 GB in use, 97–100% utilisation. No Traceback / NaN / OOM in either log.
+GPU: 17.1 GB / 46 GB in use, 97% utilisation. No Traceback / NaN / OOM in either log.
 
 ## Since last update
-- First T11 early-stop check: mean training-time success (includes exploration noise) over 5,465–5,964 is 11.13%,
-  vs 5.34% over 3,465–3,964 → +5.78 pp ≥ 2 pp, so **keep running**. Logged in `notes/log.md`.
-- T10 progress only: success 7.3% (single iteration), reward 12.8, ADR 0.0066. Its early-stop checks start at 5,000
-  (~3.6 h from now).
-- Newton ADR has started to rise (0.0090 → 0.0175); abnormal_robot 0.083 → 0.091.
+- Second T11 early-stop check: mean training-time success (includes exploration noise) over 6,465–6,964 is 19.13%,
+  vs 7.00% over 4,465–4,964 → +12.13 pp ≥ 2 pp, so **keep running**. Logged in `notes/log.md`.
+- T11 is improving fast: ADR 0.0175 → 0.0402 in ~1,000 iterations; abnormal_robot steady at ~0.09.
+- T10 progress only: success 4.9% (single iteration; ~7–8% recently), reward 12.9, ADR 0.0068. Its early-stop checks
+  start at 5,000 (~2.5 h from now).
 
 ## Needs a human
 - FYI, cost (unchanged): sharing the GPU, T10 (PhysX) runs at ~6.9 s/it vs 3.19 s/it alone (T8). Running all 15,000
