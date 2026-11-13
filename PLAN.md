@@ -147,7 +147,7 @@ This file is the contract between the planning chat and the server agent.
 - result: median iteration 1.80 s (collection 1.53 s, learning 0.27 s), 72.8k steps/s, ~7.7 GB; success 0, ADR 0 at 300; 15,000 its ≈ 7.5 h ≈ $27.4 (likely low, still drifting up); see `results/reorient_4096_timing.md`
 
 ### T10 · Reorient · PhysX · 4,096 envs (full run)
-- status: running
+- status: done
 - decided Thu 12 Nov 11:54: run T10 and T11 **at the same time**, 15,000 iterations max, with the early-stop rule below.
 - requires: T5 not `running` or `todo` (T5 is exclusive). Start T10 and T11 in the same wake-up, one right after
   the other (wait ~1 minute between them so they don't load at the same moment).
@@ -162,7 +162,7 @@ This file is the contract between the planning chat and the server agent.
   the `reorient_physx` names). Result: final/stop iteration, success (last-500 mean), abnormal_robot, ADR, reward,
   iteration time while sharing the GPU.
 - run_folder: `2026-11-12_22-18-09` (log `~/runs/reorient_physx_15000_4096envs.log`)
-- result:
+- result: finished all 15,000 its (78,164 s, 0 resumes); training success last-500 mean 49.8%, abnormal_robot ~0.013, ADR 0.501, reward ~9.6, 6.6 s/it sharing the GPU / 3.1 s/it alone; backed up model_14999.pt
 
 ### T11 · Reorient · Newton · 4,096 envs (full run)
 - status: done
@@ -174,7 +174,7 @@ This file is the contract between the planning chat and the server agent.
 - result: finished all 15,000 its (57,142 s); training success last-500 mean 64.7%, abnormal_robot ~0.30, ADR 0.853, reward ~9.1, ~3.9 s/it sharing the GPU; backed up model_14999.pt
 
 ### T13 · Cross-evaluation · Reorient 2×2
-- status: todo
+- status: running
 - requires: T10 and T11 both `done` (finished or stopped early). Same GPU job limits as T6.
 - the same procedure as T6 step 2 (no smoke test needed), with the task `reorient` and the 4,096-env checkpoints:
   1. `scripts/eval.sh reorient physx physx checkpoints/reorient_physx_4096/<final>.pt`
@@ -198,3 +198,4 @@ This file is the contract between the planning chat and the server agent.
 - 2026-11-12 12:00 UTC: T5 command 1 finished normally (594.88 s). Started T5 command 2 (lift newton 300, folder `2026-11-12_11-57-32`); iterating. T10/T11 wait for T5.
 - 2026-11-12 22:25 UTC: T5 command 2 found finished normally (325.43 s); wrote `results/speed_benchmark.md`, set T5 `done`. Started T10 (folder `2026-11-12_22-18-09`) and T11 (folder `2026-11-12_22-19-43`), both iterating. Resumes used: T10 0/2, T11 0/2.
 - 2026-11-13 14:14 UTC: T11 finished normally at 15,000 (57,142 s, 0 resumes); backed up model_14999.pt, configs, final excerpt; set `done`. T10 continues alone (check #7 +10.8 pp); T13 waits for T10.
+- 2026-11-13 20:10 UTC: T10 finished normally at 15,000 (78,164 s, 0 resumes); backed up model_14999.pt, configs, final excerpt; set `done`. Started T13, all four Reorient cross-eval cells in parallel.

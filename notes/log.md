@@ -491,3 +491,21 @@ abnormal_robot 0.010, ADR 0.273, reward 10.83, 3.15 s/it alone on the GPU.
 **T10 check #12** (2026-11-13 19:19 UTC, training-time success, 500-it means): 46.53% (13,683–14,182) vs 39.66%
 (11,683–12,182) → **+6.87 pp, keep running**. At 14,182: success 47.5%, abnormal_robot 0.013, ADR 0.414 (up from
 0.273), reward 8.59 (down from 10.83 as ADR rose), 3.12 s/it alone on the GPU. 818 iterations left.
+
+## 2026-11-13 20:10 UTC: T10 (Reorient PhysX, 4,096 envs) finished
+
+T10 ran all 15,000 iterations (`Training time: 78164.46 seconds`, no Traceback/NaN/OOM, 0 resumes). Every early-stop
+check after 5,000 passed. Training-time numbers (exploration noise on), means over iterations 14,500–14,999:
+
+| Metric | T10 PhysX (last 500) | T10 at 14,999 | T11 Newton (last 500) |
+|---|---|---|---|
+| `Metrics/success_rate` | 49.79% | 45.81% | 64.7% |
+| `Episode_Termination/abnormal_robot` | 0.0128 | 0.0134 | 0.300 |
+| `Curriculum/adr` | — | 0.5009 | 0.8525 |
+| Mean reward | 9.62 | 9.66 | 9.07 |
+| Iteration time | 3.14 s (alone) | 3.09 s | 3.92 s (sharing) |
+
+Last window vs 12,500–12,999 (42.14%): +7.65 pp, still climbing at the end (ADR 0.273 at 13,025 → 0.501), so PhysX
+was not converged at 15,000. While sharing the GPU with T11 it ran at 6.61 s/it (mean of 5,000–5,499), vs ~3.1 s/it
+alone. Newton reached higher training success and ADR, but with ~23× the abnormal_robot rate (0.300 vs 0.013). The two
+ADR levels differ, so the success rates are not at equal difficulty. Cross-evaluation (T13) started right after.

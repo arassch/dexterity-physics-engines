@@ -16,7 +16,7 @@ Output folders are under `/workspace/isaaclab/logs/rsl_rl/dexsuite_kuka_allegro/
 | 8 | Reorient | Newton | 300 (timing, **4,096 envs**, T9) | `2026-11-12_11-32-53` | Thu 11:32 | Done, 520.61 s (8.7 min) | Median iteration 1.80 s, 72.8k steps/s, ~7.7 GB (early reading); success 0, ADR 0, abnormal_robot 0.079, mean reward 5.90 at 299 |
 | 9 | Lift | PhysX | 300 (speed benchmark, T5, alone on GPU) | `2026-11-12_11-46-23` | Thu 11:46 | Done, 594.88 s | Median iteration 1.98 s, 8,293 steps/s |
 | 10 | Lift | Newton | 300 (speed benchmark, T5, alone on GPU) | `2026-11-12_11-57-32` | Thu 11:57 | Done, 325.43 s | Median iteration 1.09 s, 15,073 steps/s; abnormal_robot 0.91 at 299 |
-| 11 | Reorient | PhysX | 15,000 max (**4,096 envs**, T10, shares GPU with #12) | `2026-11-12_22-18-09` | Thu 22:18 | Running | — |
+| 11 | Reorient | PhysX | 15,000 max (**4,096 envs**, T10, shares GPU with #12) | `2026-11-12_22-18-09` | Thu 22:18 | Done, 78,164 s (21.7 h), 0 crashes | Training success last-500 mean 49.8% (final 45.8%), abnormal_robot 500-it mean 0.013, ADR 0.501, mean reward 500-it mean 9.62 (final 9.66); 6.6 s/it sharing GPU (its 5,000–5,499), 3.14 s/it alone (last 500) |
 | 12 | Reorient | Newton | 15,000 max (**4,096 envs**, T11, shares GPU with #11) | `2026-11-12_22-19-43` | Thu 22:19 | Done, 57,142 s (15.9 h), 0 crashes | Training success last-500 mean 64.7% (final 66.0%), abnormal_robot 500-it mean 0.300 (final 0.296), ADR 0.853, mean reward ~9.1 (final 9.47), ~3.9 s/it sharing GPU |
 
 Runs 2–3 and 4–5 shared one GPU, so their wall-clock times are not a fair speed comparison.
