@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Stop this Brev instance once no Isaac Lab training or playback has run for IDLE_MINUTES.
+# Stop this Brev instance once no Isaac Lab training, playback, evaluation or agent wake-up has run for IDLE_MINUTES.
 # Meant for unattended stretches (overnight). It does NOT count interactive work in
 # VS Code as activity, so don't leave it running while you're working without a run going.
 #
@@ -13,7 +13,7 @@ set -uo pipefail
 INSTANCE="${INSTANCE:-isaac-launchable-0d404b}"
 IDLE_MINUTES="${IDLE_MINUTES:-20}"
 BREV="${BREV:-$HOME/bin/brev}"
-PATTERN="isaaclab.sh (train|play)|train_rsl_rl.py|play_rsl_rl.py|reinforcement_learning/(train|play).py"
+PATTERN="isaaclab.sh (train|play)|train_rsl_rl.py|play_rsl_rl.py|reinforcement_learning/(train|play).py|scripts/evaluate.py|scripts/agent_tick.sh"
 
 idle=0
 echo "$(date -u +%FT%TZ) watching; will stop $INSTANCE after $IDLE_MINUTES idle minutes"

@@ -509,3 +509,12 @@ Last window vs 12,500–12,999 (42.14%): +7.65 pp, still climbing at the end (AD
 was not converged at 15,000. While sharing the GPU with T11 it ran at 6.61 s/it (mean of 5,000–5,499), vs ~3.1 s/it
 alone. Newton reached higher training success and ADR, but with ~23× the abnormal_robot rate (0.300 vs 0.013). The two
 ADR levels differ, so the success rates are not at equal difficulty. Cross-evaluation (T13) started right after.
+
+## 2026-11-14 09:05 UTC · Why T13 wasn't written up: idle_stop.sh ignored evaluations
+
+T10 ended at ~20:05 Fri and the agent started all four T13 eval cells at ~20:12. `idle_stop.sh` only counted
+training and playback processes (`train.py`, `play.py`), not `scripts/evaluate.py` or the agent's own wake-up, so
+it treated the eval period as idle and stopped the instance about 20 minutes after T10 ended, before the watcher's
+next wake-up could write the results. Not an agent decision: the agent can't run `brev`. Fixed by adding
+`scripts/evaluate.py` and `scripts/agent_tick.sh` to the pattern. Whether the four eval rows reached
+`results/cross_eval.csv` before the stop gets checked on restart.
