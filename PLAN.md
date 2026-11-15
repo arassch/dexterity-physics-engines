@@ -23,9 +23,17 @@ This file is the contract between the planning chat and the server agent.
   - Any other crash (out of memory, import error, missing file, ...): don't retry. Set `failed` and explain.
 - When a training run finishes: back it up (see CLAUDE.md), record final metrics, set `done`.
 - Start `todo` tasks in the order listed, as soon as their requirements are met.
+- **Budget (decided Sun 15 Nov):** $150 for everything from Sun 15 Nov 16:00 UTC on, at $3.65/hr ≈ **41 instance-hours**,
+  idle time included. At every wake-up, put "instance hours since 15 Nov 16:00 UTC" and "≈ $ spent" at the top of
+  STATUS.md (from `uptime` and the start/stop times you can see in logs; say if it's an estimate). If the estimate
+  passes **$120**, don't start any new task: write it under "Needs a human" and wait.
 
 ## Answers from humans
 
+- 2026-11-15 16:10: New phase. The finding that matters: in both tasks, PhysX policies hit `abnormal_robot` in Newton
+  within ~23–35 control steps, before real contact with the cube. So the gap is probably in the **robot** (PD drives,
+  armature, joint friction, limits, solver), not the cube. T17–T20 test that using evaluation only, with no training.
+  T21 is the gate: stop and ask before any new training run.
 - 2026-11-15 15:40: Fri 20:25 the instance was stopped by `idle_stop.sh` during the T13 evals (it ignored
   `scripts/evaluate.py`; fixed in e74f2f8). On restart: if `results/cross_eval.csv` lacks any of the four Reorient
   cells, rerun just the missing ones, then write T13 up as planned. Then T14 and T15.
@@ -217,6 +225,78 @@ This file is the contract between the planning chat and the server agent.
   animations on her computer. See `unreal/README.md`.
 - the server agent does nothing for T16.
 - result:
+
+### T17 · Why does `abnormal_robot` fire? (eval only)
+- status: todo
+- why: say exactly which condition ends PhysX → Newton episodes, on which joints, and after how many steps.
+- requires: the GPU job limits above. About 30 min of GPU.
+- step 1: read `abnormal_robot_state` in Isaac Lab
+  (`isaaclab_tasks/manager_based/manipulation/dexsuite/mdp/terminations.py`) and copy into `notes/log.md` exactly what it
+  checks and its thresholds.
+- step 2: write `scripts/trace_episode.py`, adapted from `scripts/evaluate.py` (same loading, Play config, deterministic
+  policy, seed 42). For 16 envs and the first 120 control steps (or until each env's first episode ends), save per step and
+  per env: `joint_pos`, `joint_vel`, joint position targets (the processed actions), applied joint torques if the
+  articulation exposes them, the soft joint limits, and the per-step termination flags. Save as
+  `~/runs/traces/<task>_<train>_in_<eval>.npz`; commit nothing large. Add `scripts/trace_episode.sh` like `eval.sh`.
+- step 3: run it for four Reorient cells with the 4,096-env checkpoints: physx→physx, physx→newton, newton→newton,
+  newton→physx.
+- step 4: write `results/abnormal_robot_diagnosis.md`, keeping it short: for each cell, the median step of the first
+  `abnormal_robot`, which sub-condition fired (joint limit, velocity, ...), and the 3 joints that most often break it,
+  with the values at that step. Add `scripts/plot_traces.py`, which writes `results/plots/trace_<cell>.png`: for those 3
+  joints, target vs actual position over the first 120 steps, both engines on one plot.
+- result:
+
+### T18 · Robot-only step-response test (eval only, no policy)
+- status: todo
+- why: this is our "real-world dataset". Treat PhysX as reality and record how each joint responds to the same command
+  in both engines, with no cube involved.
+- requires: T17 `done`. About 30 min of GPU.
+- write `scripts/step_response.py`: Reorient env (Play config, `presets=cube`), 64 envs, ADR at 0 (no randomisation) so
+  the robot parameters are the nominal ones. Move the cube far from the hand by resetting it out of reach (if that isn't
+  possible, keep the hand far from the table). From the default pose, for each of these signals in turn, send open-loop
+  joint position targets: (a) a step of +0.3 rad on one joint at a time (23 joints, other joints held), (b) a 1 Hz sine of
+  0.2 rad amplitude on all finger joints together, (c) the first 120 steps of action targets recorded by T17's physx→physx
+  trace, replayed open-loop. Record `joint_pos` and `joint_vel` for 120 steps per signal.
+- run it on both engines. Save `~/runs/step_response/<engine>.npz`.
+- write `results/step_response.md`: for each joint, the rise time (10–90%), overshoot and steady-state error in each engine,
+  and the RMS position difference between the engines for signals (a)–(c). Plots in `results/plots/step_<joint>.png`
+  for the 6 joints with the biggest difference.
+- result:
+
+### T19 · Fit Newton's robot parameters to PhysX (eval only)
+- status: todo
+- why: system identification. Find joint parameters that make Newton's robot track like PhysX's.
+- requires: T18 `done`. About 2 h of GPU at most; stop at 2 h even if not converged and report.
+- parameters, per joint group (arm 7, each finger 4 joints, thumb 4): a scale on PD stiffness, a scale on PD damping,
+  armature, and joint friction. That's 4 × 5 = 20 numbers. Set them through the articulation's `write_joint_*_to_sim`
+  calls, not by editing configs.
+- method: CMA-ES (`pip install --user cma`; if pip fails, write it under "Needs a human"). Each Newton env runs one
+  candidate, so one generation is one parallel rollout of signals (a)–(c). The loss is the RMS joint-position difference
+  against the PhysX recording from T18. Population size: the number of envs (64 or 128). Log the best loss for each
+  generation.
+- write `scripts/sysid_robot.py`. Output `results/sysid_robot.json` (best parameters, loss per generation) and
+  `results/plots/sysid_loss.png`, plus two step-response plots that put PhysX, default Newton and fitted Newton on one plot.
+- add "Finding 4" to `notes/log.md`: how much of the PhysX–Newton difference the fit removes (loss before vs after, per
+  signal), and which parameters moved most.
+- result:
+
+### T20 · Cross-evaluate with the fitted robot (eval only)
+- status: todo
+- why: the headline test. Does the PhysX policy work in Newton once Newton's robot matches PhysX, with no retraining?
+- requires: T19 `done`.
+- add a `--robot_params results/sysid_robot.json` option to `scripts/evaluate.py` that applies the fitted parameters after
+  reset (the same calls as T19). Don't change anything it measures.
+- run 1,024 episodes each: Reorient PhysX policy in fitted Newton, Lift PhysX policy in fitted Newton, and Newton → Newton
+  with fitted parameters (a control: does fitting break Newton's own policy?).
+- add the rows to `results/cross_eval.csv` with label `reorient_fitted` / `lift_fitted`, a "Fitted robot" table in
+  `results/cross_eval.md`, and "Finding 5" in `notes/log.md`.
+- result:
+
+### T21 · Gate: stop and ask
+- status: blocked
+- after T20, write under "Needs a human" in STATUS.md: the T20 numbers, hours and $ used since 15 Nov, and the hours left.
+  The planning chat then decides the training runs (retraining Newton with fitted parameters, a robustness heatmap, or
+  teacher–student). Don't start any training before that.
 
 ## Agent notes
 
