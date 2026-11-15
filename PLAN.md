@@ -177,7 +177,7 @@ This file is the contract between the planning chat and the server agent.
 - result: finished all 15,000 its (57,142 s); training success last-500 mean 64.7%, abnormal_robot ~0.30, ADR 0.853, reward ~9.1, ~3.9 s/it sharing the GPU; backed up model_14999.pt
 
 ### T13 · Cross-evaluation · Reorient 2×2
-- status: running
+- status: done
 - requires: T10 and T11 both `done` (finished or stopped early). Same GPU job limits as T6.
 - the same procedure as T6 step 2 (no smoke test needed), with the task `reorient` and the 4,096-env checkpoints:
   1. `scripts/eval.sh reorient physx physx checkpoints/reorient_physx_4096/<final>.pt`
@@ -186,10 +186,10 @@ This file is the contract between the planning chat and the server agent.
   4. `scripts/eval.sh reorient newton physx checkpoints/reorient_newton_4096/<final>.pt`
 - on done: add a Reorient section to `results/cross_eval.md` (same table format as Lift), "Finding 3" in
   `notes/log.md`, and the README.
-- result:
+- result: PhysX→PhysX 51.5%, PhysX→Newton 0.0% (94% abnormal_robot), Newton→Newton 64.9%, Newton→PhysX 0.0%; see `results/cross_eval.md`
 
 ### T14 · Record training-progress videos · Reorient
-- status: todo
+- status: running
 - why: the "watch it learn" shot for Reorient, and to check by eye what 50% (PhysX) vs 65% (Newton, 30% abnormal
   resets) success looks like.
 - requires: T13 `done` (don't compete with its evals). Commands 1 and 2 may run at the same time.
@@ -201,7 +201,7 @@ This file is the contract between the planning chat and the server agent.
 - result:
 
 ### T15 · Transfer clips · Reorient (policy in the other engine)
-- status: todo
+- status: running
 - requires: T13 `done`. May run alongside T14.
 - commands (one at a time):
   1. PhysX policy in Newton: `scripts/record_videos.sh reorient newton 2026-11-12_22-18-09 --out reorient_physx_policy_in_newton 14999`
@@ -223,3 +223,4 @@ This file is the contract between the planning chat and the server agent.
 - 2026-11-12 22:25 UTC: T5 command 2 found finished normally (325.43 s); wrote `results/speed_benchmark.md`, set T5 `done`. Started T10 (folder `2026-11-12_22-18-09`) and T11 (folder `2026-11-12_22-19-43`), both iterating. Resumes used: T10 0/2, T11 0/2.
 - 2026-11-13 14:14 UTC: T11 finished normally at 15,000 (57,142 s, 0 resumes); backed up model_14999.pt, configs, final excerpt; set `done`. T10 continues alone (check #7 +10.8 pp); T13 waits for T10.
 - 2026-11-13 20:10 UTC: T10 finished normally at 15,000 (78,164 s, 0 resumes); backed up model_14999.pt, configs, final excerpt; set `done`. Started T13, all four Reorient cross-eval cells in parallel.
+- 2026-11-15 15:45 UTC: T13: all four rows were already in `cross_eval.csv` (no reruns); wrote results/cross_eval.md Reorient section, Finding 3, README; set `done`. Started T14 commands 1 and 2 and T15 command 1 (3 video jobs).

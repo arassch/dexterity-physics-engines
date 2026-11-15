@@ -63,6 +63,15 @@ Lift, final checkpoints (`model_14999.pt`), ~1,024 episodes per cell, 256 envs, 
 noise), Play config (ADR at max difficulty), seed 42. Brackets: 95% Wilson interval. Details in
 [`results/cross_eval.md`](results/cross_eval.md).
 
+Reorient (4,096-env runs), same settings:
+
+| Success rate | Run in PhysX | Run in Newton |
+|---|---|---|
+| Trained in PhysX | **51.5%** (48.5–54.6) | **0.0%** (0.0–0.4) · 94% `abnormal_robot` |
+| Trained in Newton | **0.0%** (0.0–0.4) · 24% `abnormal_robot`, 64% time-out | **64.9%** (62.0–67.8) |
+
+Neither task's policy transfers in either direction, and the failure modes are the same for both tasks.
+
 ### Training cost (measured)
 
 | Run | Engine | Envs | Time per iteration | Iterations | Wall clock | GPU |

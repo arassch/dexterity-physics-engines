@@ -518,3 +518,24 @@ it treated the eval period as idle and stopped the instance about 20 minutes aft
 next wake-up could write the results. Not an agent decision: the agent can't run `brev`. Fixed by adding
 `scripts/evaluate.py` and `scripts/agent_tick.sh` to the pattern. Whether the four eval rows reached
 `results/cross_eval.csv` before the stop gets checked on restart.
+
+## 2026-11-15 15:45 UTC: Finding 3 — neither Reorient policy transfers either (T13, server agent)
+
+On restart all four Reorient rows were already in `results/cross_eval.csv` (written 20:06–20:09 Fri, before the
+stop), so no cell was rerun. ~1,024 episodes each, 256 envs, deterministic, Play config, seed 42, final 4,096-env
+checkpoints. Full table: `results/cross_eval.md`.
+
+| Trained → run in | Episodes | Success (95% CI) | abnormal_robot | object_out_of_bound | time_out |
+|---|---|---|---|---|---|
+| PhysX → PhysX | 1,027 | 51.5% (48.5–54.6) | 1.1% | 2.2% | 96.7% |
+| PhysX → Newton | 1,027 | 0.0% (0.0–0.4) | 93.7% | 6.4% | 0.0% |
+| Newton → Newton | 1,024 | 64.9% (62.0–67.8) | 28.8% | 0.0% | 71.3% |
+| Newton → PhysX | 1,024 | 0.0% (0.0–0.4) | 24.3% | 11.4% | 64.3% |
+
+- **Both directions drop to 0 successes in ~1,024 episodes**, as for Lift (Finding 2).
+- The failure modes repeat Lift's. PhysX → Newton: 93.7% `abnormal_robot` after ~35 control steps (1,027 episodes in
+  141 steps × 256 envs; Lift was ~23). Newton → PhysX: 64.3% time-out, 24.3% `abnormal_robot`, 11.4% out of bounds
+  (Lift: 65.5 / 22.9 / 12.0%).
+- Same-engine results match training-time last-500 means (PhysX 49.8% → 51.5%, Newton 64.7% → 64.9%), so the
+  deterministic policy is no worse than the noisy one here. Newton → Newton still has 28.8% `abnormal_robot`.
+- Caveat: training ADR differed (PhysX 0.50, Newton 0.85).
