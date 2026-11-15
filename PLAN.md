@@ -209,6 +209,15 @@ This file is the contract between the planning chat and the server agent.
 - add both to `results/videos.md`; note in `notes/log.md` anything the logs show, next to the T13 numbers.
 - result: 2 clips, no errors (PhysX→Newton 565,901 B, Newton→PhysX 586,896 B); see `results/videos.md`
 
+### T16 · Replay in Unreal (run by hand, not by the agent)
+- status: running
+- why: show the same motion in Unreal Engine, first as USD playback, then driven by a Control Rig.
+- done so far (Sun 15 Nov, by hand): `scripts/export_episode.sh` for the four Reorient cells (home and away, both
+  engines), files in `~/runs/exports/` and in Sara's Dropbox; `scripts/make_usd_animation.py` builds the USD
+  animations on her computer. See `unreal/README.md`.
+- the server agent does nothing for T16.
+- result:
+
 ## Agent notes
 
 <!-- The server agent adds dated one-line notes here, newest last. -->

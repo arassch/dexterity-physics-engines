@@ -548,3 +548,11 @@ PhysX 466–544 KB, Newton 244–397 KB (Newton smaller again, as for Lift). T15
 larger than the in-engine clip, as for Lift (T12). That fits T13's 0% success and 93.7% `abnormal_robot` for
 PhysX → Newton, but the play logs don't print resets, so someone has to watch the clips. Also worth checking whether
 the table is missing in the Newton Reorient clips, as it is in the Lift ones.
+
+## 2026-11-15 15:56 UTC · Motion exports for Unreal (T16, by hand)
+
+Ran `scripts/export_episode.sh` for the four Reorient cells (final checkpoints, 4 envs, 720 steps = two 6 s
+episodes, seed 42). The PhysX playback exported the flattened scene (12.9 MB `.usd`) and matched **30/30** robot body
+prims, so every link can be animated. Each recording: 720 steps × 4 envs, ~6.5 MB JSON. The PhysX → PhysX run had 8
+episode ends (two per env, as expected for 720 steps without early terminations). Files are in `~/runs/exports/` on the
+server and in Sara's Dropbox (`dexterity-physics-engines/demo_files/`), not in git.
