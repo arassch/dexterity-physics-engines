@@ -26,6 +26,9 @@ This file is the contract between the planning chat and the server agent.
 
 ## Answers from humans
 
+- 2026-11-15 15:40: Fri 20:25 the instance was stopped by `idle_stop.sh` during the T13 evals (it ignored
+  `scripts/evaluate.py`; fixed in e74f2f8). On restart: if `results/cross_eval.csv` lacks any of the four Reorient
+  cells, rerun just the missing ones, then write T13 up as planned. Then T14 and T15.
 - 2026-11-12 22:30: the 12:03–22:16 idle gap wasn't a watcher bug. The Claude token allowance ran out, so no wake-up
   could run, and Sara stopped the instance. Nothing to fix; drop it from "Needs a human". Leave the T8/T9 `model_299.pt`
   files on the server (no need in the repo). Sara has watched the T7/T12 clips (her notes are in `notes/log.md`).
@@ -183,6 +186,27 @@ This file is the contract between the planning chat and the server agent.
   4. `scripts/eval.sh reorient newton physx checkpoints/reorient_newton_4096/<final>.pt`
 - on done: add a Reorient section to `results/cross_eval.md` (same table format as Lift), "Finding 3" in
   `notes/log.md`, and the README.
+- result:
+
+### T14 · Record training-progress videos · Reorient
+- status: todo
+- why: the "watch it learn" shot for Reorient, and to check by eye what 50% (PhysX) vs 65% (Newton, 30% abnormal
+  resets) success looks like.
+- requires: T13 `done` (don't compete with its evals). Commands 1 and 2 may run at the same time.
+- commands:
+  1. `scripts/record_videos.sh reorient physx 2026-11-12_22-18-09 1000 5000 10000 14999`
+  2. `scripts/record_videos.sh reorient newton 2026-11-12_22-19-43 1000 5000 10000 14999`
+- clips land in `~/runs/videos/reorient_<engine>/model_<N>.mp4`. Don't commit the .mp4 files. Add a Reorient section
+  to `results/videos.md` (same table as Lift). If no video is produced, set `blocked` with the error excerpt.
+- result:
+
+### T15 · Transfer clips · Reorient (policy in the other engine)
+- status: todo
+- requires: T13 `done`. May run alongside T14.
+- commands (one at a time):
+  1. PhysX policy in Newton: `scripts/record_videos.sh reorient newton 2026-11-12_22-18-09 --out reorient_physx_policy_in_newton 14999`
+  2. Newton policy in PhysX: `scripts/record_videos.sh reorient physx 2026-11-12_22-19-43 --out reorient_newton_policy_in_physx 14999`
+- add both to `results/videos.md`; note in `notes/log.md` anything the logs show, next to the T13 numbers.
 - result:
 
 ## Agent notes
