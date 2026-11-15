@@ -198,7 +198,7 @@ This file is the contract between the planning chat and the server agent.
   2. `scripts/record_videos.sh reorient newton 2026-11-12_22-19-43 1000 5000 10000 14999`
 - clips land in `~/runs/videos/reorient_<engine>/model_<N>.mp4`. Don't commit the .mp4 files. Add a Reorient section
   to `results/videos.md` (same table as Lift). If no video is produced, set `blocked` with the error excerpt.
-- result:
+- result: 8 clips (PhysX 4, Newton 4), no errors; see `results/videos.md`
 
 ### T15 · Transfer clips · Reorient (policy in the other engine)
 - status: done
@@ -207,7 +207,7 @@ This file is the contract between the planning chat and the server agent.
   1. PhysX policy in Newton: `scripts/record_videos.sh reorient newton 2026-11-12_22-18-09 --out reorient_physx_policy_in_newton 14999`
   2. Newton policy in PhysX: `scripts/record_videos.sh reorient physx 2026-11-12_22-19-43 --out reorient_newton_policy_in_physx 14999`
 - add both to `results/videos.md`; note in `notes/log.md` anything the logs show, next to the T13 numbers.
-- result:
+- result: 2 clips, no errors (PhysX→Newton 565,901 B, Newton→PhysX 586,896 B); see `results/videos.md`
 
 ## Agent notes
 
