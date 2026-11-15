@@ -12,6 +12,9 @@
 #   scripts/train.sh lift newton 5000 --resume 2026-11-11_13-06-41 model_10000.pt
 #                                               # resume: iterations are *additional*
 #   (the older form RESUME_RUN=... CHECKPOINT=... scripts/train.sh ... still works)
+#   scripts/train.sh lift physx 3000 --tag noactpen --override env.rewards.action_l2.weight=0
+#                                               # a Hydra override (repeatable) and a tag for the log name.
+#                                               # Only when a PLAN.md task gives the exact --override lines.
 #
 # Environment overrides: SEED (42), NUM_ENVS (512), ISAACLAB_DIR, RUN_DIR (~/runs)
 set -euo pipefail
@@ -19,11 +22,15 @@ set -euo pipefail
 TASK_SHORT="${1:?usage: train.sh <lift|reorient> <physx|newton> [iterations] [--envs N] [--resume <run_folder> <model_N.pt>]}"
 ENGINE="${2:?usage: train.sh <lift|reorient> <physx|newton> [iterations] [--envs N] [--resume <run_folder> <model_N.pt>]}"
 ITERS=15000
+OVERRIDES=()
+TAG=""
 if [[ -n "${3:-}" && "${3}" != --* ]]; then ITERS="$3"; shift 3; else shift 2; fi
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --envs)   NUM_ENVS="${2:?--envs needs a number}"; shift 2 ;;
     --resume) RESUME_RUN="${2:?--resume needs <run_folder> <model_N.pt>}"; CHECKPOINT="${3:?--resume needs <run_folder> <model_N.pt>}"; shift 3 ;;
+    --override) OVERRIDES+=("${2:?--override needs key=value}"); shift 2 ;;
+    --tag)    TAG="${2:?--tag needs a name}"; shift 2 ;;
     *) echo "unknown option: $1" >&2; exit 1 ;;
   esac
 done
@@ -49,6 +56,11 @@ RESUME_ARGS=()
 [[ "$NUM_ENVS" =~ ^[0-9]+$ ]] || { echo "--envs must be a number" >&2; exit 1; }
 NAME="${TASK_SHORT}_${ENGINE}_${ITERS}"
 [[ "$NUM_ENVS" != 512 ]] && NAME="${NAME}_${NUM_ENVS}envs"
+if [[ -n "$TAG" ]]; then
+  [[ "$TAG" =~ ^[A-Za-z0-9_-]+$ ]] || { echo "--tag may only contain letters, digits, _ -" >&2; exit 1; }
+  NAME="${NAME}_${TAG}"
+fi
+for o in "${OVERRIDES[@]}"; do [[ "$o" =~ ^env\.rewards\.[a-z_]+\.weight=-?[0-9.]+$ ]] || { echo "only env.rewards.<term>.weight=<number> overrides are allowed: $o" >&2; exit 1; }; done
 if [[ -n "${RESUME_RUN:-}" ]]; then
   RESUME_ARGS=(--resume --load_run "$RESUME_RUN" --checkpoint "${CHECKPOINT:?set CHECKPOINT when resuming}")
   NAME="${NAME}_resume_$(date +%m%d-%H%M)"   # unique, so a second resume never overwrites the first log
@@ -62,6 +74,7 @@ PYTHONUNBUFFERED=1 nohup ./isaaclab.sh train --rl_library rsl_rl \
   --num_envs "$NUM_ENVS" physics="$PHYSICS" presets=cube \
   --seed "$SEED" agent.max_iterations="$ITERS" \
   "${RESUME_ARGS[@]}" \
+  "${OVERRIDES[@]}" \
   > "$RUN_DIR/$NAME.log" 2>&1 &
 
 echo "Started $NAME (pid $!)"

@@ -8,6 +8,18 @@ This file is the contract between the planning chat and the server agent.
 - Statuses: `todo` (start when its requirements are met) · `running` · `done` · `blocked` (needs a human; don't start) ·
   `hold` (deliberately paused; don't start) · `failed` (gave up after the crash policy; needs a human).
 
+## Goal (Sara, Sun 15 Nov)
+
+This project has two goals: end with **something to show** (video, figures, README and write-up), and **learn what
+robotics roles ask for** along the way: simulation and system ID (Machenta, Wayve, NVIDIA), and RL, meaning reward
+design, randomisation and distillation (DeepMind, Humanoid, Machenta Robot Learning). So:
+
+- Every task ends with an output that can be shown: a figure, a table or a clip.
+- Tasks marked **by Sara** are the core skills. The agent prepares their data and harness, then sets them `blocked`
+  and waits; it doesn't write those parts.
+- After each agent task, Sara reads its scripts and writes a short "What I learned" note in `notes/log.md`. The agent
+  doesn't write these.
+
 ## Rules
 
 - GPU job limits (changed Thu 12 Nov 10:47, to make better use of the machine): at most **2 training runs**
@@ -264,27 +276,33 @@ This file is the contract between the planning chat and the server agent.
   for the 6 joints with the biggest difference.
 - result:
 
-### T19 · Fit Newton's robot parameters to PhysX (eval only)
+### T19 · System-ID harness (agent), then the fit (by Sara)
 - status: todo
-- why: system identification. Find joint parameters that make Newton's robot track like PhysX's.
-- requires: T18 `done`. About 2 h of GPU at most; stop at 2 h even if not converged and report.
+- why: system identification. Find joint parameters that make Newton's robot track like PhysX's. The fit itself is
+  Sara's: it's the skill the simulation roles ask about.
+- requires: T18 `done`.
 - parameters, per joint group (arm 7, each finger 4 joints, thumb 4): a scale on PD stiffness, a scale on PD damping,
   armature, and joint friction. That's 4 × 5 = 20 numbers. Set them through the articulation's `write_joint_*_to_sim`
   calls, not by editing configs.
-- method: CMA-ES (`scripts/pip_install.sh cma`; if it fails, write it under "Needs a human"). Each Newton env runs one
-  candidate, so one generation is one parallel rollout of signals (a)–(c). The loss is the RMS joint-position difference
-  against the PhysX recording from T18. Population size: the number of envs (64 or 128). Log the best loss for each
-  generation.
-- write `scripts/sysid_robot.py`. Output `results/sysid_robot.json` (best parameters, loss per generation) and
-  `results/plots/sysid_loss.png`, plus two step-response plots that put PhysX, default Newton and fitted Newton on one plot.
-- add "Finding 4" to `notes/log.md`: how much of the PhysX–Newton difference the fit removes (loss before vs after, per
-  signal), and which parameters moved most.
+- **agent part:** write `scripts/sysid_harness.py`, a module plus a small CLI, that
+  1. loads the PhysX recording from T18,
+  2. builds a Newton env with N envs (64 or 128) and ADR at 0,
+  3. provides `rollout(params)`: `params` has shape (N, 20), the function applies one parameter set per env, replays
+     signals (a)–(c), and returns joint trajectories of shape (N, signals, steps, 23),
+  4. provides `default_params()`, and
+  5. with `--check`, rolls out the default parameters in every env and prints the RMS difference against PhysX per
+     signal, which should match T18's numbers.
+  Install `cma` with `scripts/pip_install.sh cma`. Run `--check`, record the numbers in `notes/log.md`, set this task
+  `blocked` and write "T19 harness ready for Sara" under "Needs a human". Don't write the loss or the optimiser.
+- **Sara's part (by hand):** `scripts/sysid_fit.py`, the loss and a CMA-ES loop over `rollout()`, capped at 2 h of GPU,
+  writing `results/sysid_robot.json` (best parameters, loss per generation), `results/plots/sysid_loss.png`, and step
+  responses for PhysX, default Newton and fitted Newton. Then "Finding 4" in `notes/log.md`. Sara sets T19 `done`.
 - result:
 
 ### T20 · Cross-evaluate with the fitted robot (eval only)
 - status: todo
 - why: the headline test. Does the PhysX policy work in Newton once Newton's robot matches PhysX, with no retraining?
-- requires: T19 `done`.
+- requires: T19 `done` (set by Sara after her fit).
 - add a `--robot_params results/sysid_robot.json` option to `scripts/evaluate.py` that applies the fitted parameters after
   reset (the same calls as T19). Don't change anything it measures.
 - run 1,024 episodes each: Reorient PhysX policy in fitted Newton, Lift PhysX policy in fitted Newton, and Newton → Newton
@@ -296,8 +314,32 @@ This file is the contract between the planning chat and the server agent.
 ### T21 · Gate: stop and ask
 - status: blocked
 - after T20, write under "Needs a human" in STATUS.md: the T20 numbers, hours and $ used since 15 Nov, and the hours left.
-  The planning chat then decides the training runs (retraining Newton with fitted parameters, a robustness heatmap, or
-  teacher–student). Don't start any training before that.
+  The planning chat then decides the next runs. The default is **teacher–student on Lift** (the RL skill the roles ask
+  for), plus the robustness heatmap (evaluation only). Retraining Newton with fitted parameters comes only if T20 shows a
+  real gain and the budget allows. Don't start any training before that decision.
+
+### T22 · Reward experiment · Lift · PhysX (two variants, 3,000 iterations)
+- status: todo
+- why: show how rewards shape behaviour (reward design is the RL skill every robot-learning role asks about), and
+  test whether a less smooth policy transfers to Newton even worse. This task changes reward weights, but only through
+  the exact `--override` lines below.
+- requires: the GPU job limits above. May run alongside T17–T19 (it uses the two training slots); start A and B together.
+- step 0, check: `scripts/train.sh lift physx 5 --tag check --override env.rewards.action_l2.weight=0`. In the new run
+  folder's `params/env.yaml`, `action_l2` must show `weight: 0` (or `0.0`). If it doesn't, set `blocked` with the yaml
+  excerpt in STATUS.md, and don't start A or B.
+- variant A, no smoothness penalties:
+  `scripts/train.sh lift physx 3000 --tag noactpen --override env.rewards.action_l2.weight=0 --override env.rewards.action_rate_l2.weight=0`
+- variant B, no grasp rewards:
+  `scripts/train.sh lift physx 3000 --tag nograsp --override env.rewards.good_finger_contact.weight=0 --override env.rewards.contact_count.weight=0`
+- baseline: T1's `checkpoints/lift_physx/model_3000.pt`, the normal rewards at the same iteration count. No training.
+- on done (each variant): back it up as in CLAUDE.md into `checkpoints/lift_physx_<tag>/` and `configs/lift_physx_<tag>/`.
+  Then evaluate with `scripts/eval.sh`, 1,024 episodes each: A in PhysX, A in Newton, B in PhysX, and the T1
+  `model_3000.pt` baseline in PhysX and in Newton. Record clips with `scripts/record_videos.sh lift physx <run_folder> <final N>`
+  for A and B, and `scripts/record_videos.sh lift physx 2026-11-11_11-08-26 3000` for the baseline.
+- write `results/reward_experiment.md`: one table (variant, success, abnormal_robot, object_out_of_bound, time_out,
+  and the mean |action| and mean |action rate| if the logs give them). Plus "Finding 6" in `notes/log.md`, describing
+  what each variant does instead, from the logs. Sara watches the clips and adds her description.
+- result:
 
 ## Agent notes
 
