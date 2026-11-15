@@ -1,21 +1,22 @@
 # Status
-Updated: 2026-11-13 20:12 UTC by the server agent (wake-up: state changed, T10 training process ended)
+Updated: 2026-11-13 20:12 UTC by the server agent (wake-up: state changed, no training processes left)
 
 ## GPU jobs
 | Task | Engine | Iteration | Success | abnormal_robot | ADR | ETA |
 |---|---|---|---|---|---|---|
-| T13 cell 1 (PhysX policy → PhysX) | PhysX | eval, 1,024 eps | — | — | — | minutes |
-| T13 cell 2 (PhysX policy → Newton) | Newton | eval, 1,024 eps | — | — | — | minutes |
-| T13 cell 3 (Newton policy → Newton) | Newton | eval, 1,024 eps | — | — | — | minutes |
-| T13 cell 4 (Newton policy → PhysX) | PhysX | eval, 1,024 eps | — | — | — | minutes |
-
-GPU: 10.8 GB / 46 GB in use, 60% util, all four evals past policy loading, no errors so far.
+| none running (T13 evals finished) | | | | | | |
 
 ## Since last update
-- T10 (Reorient PhysX, 4,096 envs) **finished normally** at 15,000 (78,164 s, 0 resumes). Training-time last-500
-  means: success 49.8%, abnormal_robot 0.013, reward 9.62; ADR 0.501 at the end. Still improving (+7.65 pp vs
-  12,500–12,999). Backed up `checkpoints/reorient_physx_4096/model_14999.pt`, configs, final excerpt; set `done`.
-- Started T13 (Reorient cross-eval): all four cells in parallel. Results get written on the next wake-up.
+- T13 (Reorient cross-eval): all four cells finished. Rows are in `results/cross_eval.csv` (not committed yet), and the
+  eval logs show no Traceback or Error:
+  - PhysX→PhysX 51.5% [48.5, 54.6], abnormal_robot 0.011 (1,027 eps)
+  - PhysX→Newton 0.0% [0.0, 0.4], abnormal_robot 0.937 (1,027 eps)
+  - Newton→Newton 64.9% [62.0, 67.8], abnormal_robot 0.288 (1,024 eps)
+  - Newton→PhysX 0.0% [0.0, 0.4], abnormal_robot 0.243 (1,024 eps)
+- Not done yet: `results/cross_eval.md` Reorient section, Finding 3, README, setting T13 `done`, commit/push.
 
 ## Needs a human
-- nothing
+- **Bash was denied to the server agent on this wake-up** ("don't ask" permission mode), so I couldn't run
+  `git pull`, `pgrep`, `nvidia-smi`, commit or push. This STATUS.md edit and `results/cross_eval.csv` exist only on
+  the server, uncommitted. Please check the agent's permission settings. Once Bash works again, the next wake-up
+  can finish the T13 write-up.
