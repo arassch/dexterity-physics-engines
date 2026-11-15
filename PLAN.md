@@ -27,6 +27,7 @@ This file is the contract between the planning chat and the server agent.
   idle time included. At every wake-up, put "instance hours since 15 Nov 16:00 UTC" and "≈ $ spent" at the top of
   STATUS.md (from `uptime` and the start/stop times you can see in logs; say if it's an estimate). If the estimate
   passes **$120**, don't start any new task: write it under "Needs a human" and wait.
+- **How to run the new scripts (T17–T20):** launch every new Python script with `scripts/run_isaac.sh <log_name> <script.py> [args]` (background, log in `~/runs/<log_name>.log`), never with `./isaaclab.sh` directly: that is the only way it is allowed, and the only way `idle_stop.sh` counts it as activity. Install packages only with `scripts/pip_install.sh cma` (or `matplotlib`). Test each new script on a few envs and steps first; after two failed fix attempts on one script, set the task `blocked` with the error in STATUS.md.
 
 ## Answers from humans
 
@@ -270,7 +271,7 @@ This file is the contract between the planning chat and the server agent.
 - parameters, per joint group (arm 7, each finger 4 joints, thumb 4): a scale on PD stiffness, a scale on PD damping,
   armature, and joint friction. That's 4 × 5 = 20 numbers. Set them through the articulation's `write_joint_*_to_sim`
   calls, not by editing configs.
-- method: CMA-ES (`pip install --user cma`; if pip fails, write it under "Needs a human"). Each Newton env runs one
+- method: CMA-ES (`scripts/pip_install.sh cma`; if it fails, write it under "Needs a human"). Each Newton env runs one
   candidate, so one generation is one parallel rollout of signals (a)–(c). The loss is the RMS joint-position difference
   against the PhysX recording from T18. Population size: the number of envs (64 or 128). Log the best loss for each
   generation.

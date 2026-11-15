@@ -13,7 +13,7 @@ set -uo pipefail
 INSTANCE="${INSTANCE:-isaac-launchable-0d404b}"
 IDLE_MINUTES="${IDLE_MINUTES:-20}"
 BREV="${BREV:-$HOME/bin/brev}"
-PATTERN="isaaclab.sh (train|play)|train_rsl_rl.py|play_rsl_rl.py|reinforcement_learning/(train|play).py|scripts/evaluate.py|scripts/export_episode.py|scripts/agent_tick.sh"
+PATTERN="isaaclab.sh (train|play)|train_rsl_rl.py|play_rsl_rl.py|reinforcement_learning/(train|play).py|dexterity-physics-engines/scripts/[a-z0-9_]+\.py|scripts/agent_tick.sh"
 
 idle=0
 echo "$(date -u +%FT%TZ) watching; will stop $INSTANCE after $IDLE_MINUTES idle minutes"

@@ -23,7 +23,7 @@ snapshot() {
   git fetch -q origin main 2>/dev/null
   local plan runs errs
   plan=$(git rev-parse --verify -q origin/main:PLAN.md 2>/dev/null || echo none)
-  runs=$(pgrep -f "reinforcement_learning/(train|play)\.py|scripts/evaluate\.py" 2>/dev/null | sort -n | tr '\n' ',')
+  runs=$(pgrep -f "reinforcement_learning/(train|play)\.py|dexterity-physics-engines/scripts/[a-z0-9_]+\.py" 2>/dev/null | sort -n | tr '\n' ',')
   errs=$(grep -lE "Traceback|NaN values|CUDA out of memory" "$HOME"/runs/*.log 2>/dev/null | sort | tr '\n' ',')
   echo "plan=${plan:0:12} runs=[$runs] crashed_logs=[$errs]"
 }

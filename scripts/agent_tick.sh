@@ -22,6 +22,7 @@ ALLOWED+=",Bash(cat *),Bash(ls),Bash(ls *),Bash(du *),Bash(wc *),Bash(date),Bash
 ALLOWED+=",Bash(cp *),Bash(mkdir *),Bash(cd *),Bash(sleep *),Bash(find *),Bash(dirname *),Bash(basename *)"
 ALLOWED+=",Bash(scripts/train.sh *),Bash(scripts/check_progress.sh *),Bash(scripts/stop_run.sh *)"
 ALLOWED+=",Bash(scripts/eval.sh *),Bash(scripts/record_videos.sh *),Bash(column *),Bash(cut *)"
+ALLOWED+=",Bash(scripts/run_isaac.sh *),Bash(scripts/pip_install.sh *)"
 
 TS=$(date -u +%Y%m%dT%H%M%SZ)
 OUT="$STATE/tick_$TS.log"
