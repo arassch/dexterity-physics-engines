@@ -189,7 +189,7 @@ This file is the contract between the planning chat and the server agent.
 - result: PhysX→PhysX 51.5%, PhysX→Newton 0.0% (94% abnormal_robot), Newton→Newton 64.9%, Newton→PhysX 0.0%; see `results/cross_eval.md`
 
 ### T14 · Record training-progress videos · Reorient
-- status: running
+- status: done
 - why: the "watch it learn" shot for Reorient, and to check by eye what 50% (PhysX) vs 65% (Newton, 30% abnormal
   resets) success looks like.
 - requires: T13 `done` (don't compete with its evals). Commands 1 and 2 may run at the same time.
@@ -201,7 +201,7 @@ This file is the contract between the planning chat and the server agent.
 - result:
 
 ### T15 · Transfer clips · Reorient (policy in the other engine)
-- status: running
+- status: done
 - requires: T13 `done`. May run alongside T14.
 - commands (one at a time):
   1. PhysX policy in Newton: `scripts/record_videos.sh reorient newton 2026-11-12_22-18-09 --out reorient_physx_policy_in_newton 14999`
@@ -225,3 +225,4 @@ This file is the contract between the planning chat and the server agent.
 - 2026-11-13 20:10 UTC: T10 finished normally at 15,000 (78,164 s, 0 resumes); backed up model_14999.pt, configs, final excerpt; set `done`. Started T13, all four Reorient cross-eval cells in parallel.
 - 2026-11-15 15:45 UTC: T14 cmd 2 (Newton, 4 clips) and T15 cmd 1 (PhysX→Newton clip) finished without errors; started T15 cmd 2 (Newton policy in PhysX). T14 cmd 1 still recording.
 - 2026-11-15 15:45 UTC: T13: all four rows were already in `cross_eval.csv` (no reruns); wrote results/cross_eval.md Reorient section, Finding 3, README; set `done`. Started T14 commands 1 and 2 and T15 command 1 (3 video jobs).
+- 2026-11-15 15:50 UTC: T14 cmd 1 (PhysX, 4 clips) and T15 cmd 2 (Newton→PhysX clip) finished without errors; wrote Reorient sections in `results/videos.md`; set T14 and T15 `done`. No `todo` tasks left; GPU idle.

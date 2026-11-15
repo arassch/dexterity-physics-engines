@@ -539,3 +539,12 @@ checkpoints. Full table: `results/cross_eval.md`.
 - Same-engine results match training-time last-500 means (PhysX 49.8% → 51.5%, Newton 64.7% → 64.9%), so the
   deterministic policy is no worse than the noisy one here. Newton → Newton still has 28.8% `abnormal_robot`.
 - Caveat: training ADR differed (PhysX 0.50, Newton 0.85).
+
+## 2026-11-15 15:50 UTC: T14/T15 Reorient clips recorded (server agent)
+
+All 10 clips recorded without a Traceback or `FAILED` line (15:38–15:46 UTC); list in `results/videos.md`. T14:
+PhysX 466–544 KB, Newton 244–397 KB (Newton smaller again, as for Lift). T15 transfer clips: PhysX → Newton
+565,901 B (vs 519,620 B in PhysX), Newton → PhysX 586,896 B (vs 370,644 B in Newton). Both transfer clips are
+larger than the in-engine clip, as for Lift (T12). That fits T13's 0% success and 93.7% `abnormal_robot` for
+PhysX → Newton, but the play logs don't print resets, so someone has to watch the clips. Also worth checking whether
+the table is missing in the Newton Reorient clips, as it is in the Lift ones.

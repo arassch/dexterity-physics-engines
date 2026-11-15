@@ -1,19 +1,18 @@
 # Status
-Updated: 2026-11-15 15:45 UTC by the server agent (wake-up: state changed, video jobs moved on)
+Updated: 2026-11-15 15:50 UTC by the server agent (wake-up: state changed, last video jobs finished)
 
 ## GPU jobs
 | Task | Engine | Iteration | Success | abnormal_robot | ADR | ETA |
 |---|---|---|---|---|---|---|
-| T14 cmd 1 (Reorient PhysX progress clips) | PhysX | video: 1000, 5000 saved; recording 10000, then 14999 | — | — | — | ~3 min |
-| T15 cmd 2 (Reorient Newton policy in PhysX, 14999) | PhysX | video: started 15:42, loading | — | — | — | ~2 min |
+| — | — | — | — | — | — | — |
 
-No training runs. GPU 7.7 / 46 GB, 41% util.
+No jobs running. GPU 0 / 46 GB in use, 0% util.
 
 ## Since last update
-- T14 cmd 2 (Newton) finished: 4 clips saved, no Traceback (model_1000 240K, 5000 272K, 10000 388K, 14999 364K).
-- T15 cmd 1 (PhysX policy in Newton) finished 15:39: `reorient_physx_policy_in_newton/model_14999.mp4` (556K), no Traceback.
-- Started T15 cmd 2 (Newton policy in PhysX), log `~/runs/videos_reorient_newton_policy_in_physx.log`.
-- `results/videos.md` Reorient section will be written once T14 cmd 1 and T15 cmd 2 finish.
+- T14 cmd 1 (Reorient PhysX progress clips) finished: 4 clips (1000, 5000, 10000, 14999), no Traceback.
+- T15 cmd 2 (Newton policy in PhysX) finished: `reorient_newton_policy_in_physx/model_14999.mp4` (586,896 B), no Traceback.
+- Wrote the Reorient T14/T15 sections in `results/videos.md` and a note in `notes/log.md`; set T14 and T15 `done`.
 
 ## Needs a human
-- nothing
+- Every task in PLAN.md is `done`; none are `todo`. The GPU is idle, so `idle_stop.sh` will stop the instance after 20 minutes unless new tasks are added.
+- The 10 Reorient clips (`~/runs/videos/reorient_*`) need watching, especially to check whether the table is missing in the Newton clips, as it is in the Lift ones.
