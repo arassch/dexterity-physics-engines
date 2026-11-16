@@ -359,7 +359,7 @@ design, randomisation and distillation (DeepMind, Humanoid, Machenta Robot Learn
   resets go away). Finding 9; `results/blowup_diagnosis.md`. Newton source check of `joint_velocity_limit` not done (no read access).
 
 ### T25b · Where does the one-substep kick come from? (eval only) · before T19
-- status: todo
+- status: done
 - why: T25 (Finding 9) showed a per-substep velocity clamp removes only 13/47 Newton blow-ups; the rest jump past 2×
   the limit within one 1/120 s substep. That is > 1,500 rad/s², far more than a 0.5 N·m drive can give a joint with
   0.01 kg·m² armature (~50 rad/s²), so the kick most likely comes from a **constraint force**, not the drives.
@@ -380,7 +380,10 @@ design, randomisation and distillation (DeepMind, Humanoid, Machenta Robot Learn
 - on done: `results/blowup_diagnosis.md` gets a "T25b" section (a table: test, setting, resets out of 64), "Finding 10"
   in `notes/log.md`, and under "Needs a human" a concrete proposal for T19's parameters (what to fit, with ranges).
   Don't change T19 yourself.
-- result:
+- result: Newton `abnormal_robot` of 64: defaults 47, self-collision off 47, 4/8 substeps 36/37, clamp at 2/4/8
+  substeps 34/25/17 (PhysX 0 throughout). Only 4/47 blow-ups have a joint at a position limit. Source: MuJoCo Warp
+  ignores `joint_velocity_limit` (`solver_mujoco.py:298-299, 4309-4310`); joint limits use solref (−1e4, −10).
+  Finding 10; `results/blowup_diagnosis.md` T25b section, `results/t25b_tests.md`.
 
 ### T19 · System-ID harness (agent), then the fit (by Sara)
 - status: hold
@@ -476,3 +479,4 @@ design, randomisation and distillation (DeepMind, Humanoid, Machenta Robot Learn
 - 2026-11-16 13:22 UTC: T23 done: all 8 matched cells finished (no errors); cross-engine cells still ~0%, controls match T6/T13. Wrote cross_eval.md table, Finding 7, README line. T18 not started (out of time this wake-up).
 - 2026-11-16 13:55 UTC: T18 done: wrote `scripts/step_response.py` + `scripts/analyze_step_response.py` (1 fix: signal-a env→joint map differs by name between engines), smoke tests passed, ran 64 envs on both engines. Small signals match; open-loop policy replay blows up 28/64 Newton envs with no cube (Finding 8). T19 left for next wake-up so the planning chat can see Finding 8 first.
 - 2026-11-16 14:51 UTC: T25 done: committed step 1 (left uncommitted by an earlier wake-up), step 2 code read (PhysX side only), added `--adr max`, `--signals`, `--clamp_vel` and per-env termination terms to `step_response.py`, smoke-tested, ran signal c at ADR max on both engines and the clamped Newton run. Finding 9. T22 A/B still training (0/2 resumes each).
+- 2026-11-16 15:50 UTC: T25b done: added `--no_self_collision`, `--num_substeps`, and pre-reset/per-physics-step recording to `step_response.py`, plus `scripts/t25b_analysis.py`; smoke test, then 8 signal-c runs (≤ 4 at a time), and read the newton source. Finding 10. T19 proposal in STATUS.md. T22 A/B still training.

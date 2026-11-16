@@ -767,3 +767,35 @@ Full write-up: `results/blowup_diagnosis.md`. Signal (c) (PhysX policy targets, 
   impulse within one substep, which a per-substep clamp can't stop. Untested suspects: the joint position-limit
   constraint, finger self-collision, the implicit drive at these gains.
 - Gap: whether MuJoCo Warp reads `joint_velocity_limit` wasn't checked in the source (outside what the agent can read).
+
+## 2026-11-16 15:50 UTC: Finding 10, the Newton kick isn't self-collision or joint limits; a finer time step plus a velocity clamp removes most of it (T25b, server agent)
+
+Full write-up: `results/blowup_diagnosis.md` (T25b section), per-blow-up rows in `results/t25b_tests.md`. Signal (c),
+64 envs, `--adr max`, no cube, `scripts/step_response.py` (new `--no_self_collision`, `--num_substeps`), logs
+`~/runs/t25b_*.log`. Only 15 distinct trace episodes are replayed across the 64 envs, so counts move in blocks of ~4.
+
+`abnormal_robot` resets out of 64 (PhysX 0 in every setting):
+
+| Newton setting | abnormal_robot |
+|---|---|
+| defaults (2 solver substeps) | 47 |
+| self-collision off | 47 |
+| 4 substeps / 8 substeps | 36 / 37 |
+| velocity clamp, 2 / 4 / 8 substeps | 34 / 25 / **17** |
+
+- Self-collision off: no change in Newton (47, same steps), though the trajectories did change. PhysX was
+  bit-identical, so it either has no self-contacts here or ignored the setting.
+- Joint limits: a joint above 2× its velocity limit was within 0.02 rad of a position limit in only 4/47 blow-ups
+  (0/47 one physics step earlier). Most are 0.1–0.9 rad from a limit. The index finger causes most of them
+  (`index_joint_2` ×29).
+- Time step: finer steps alone remove ~10 resets. With the clamp they remove 30 (47 → 17). The two effects add up.
+- Source (`newton/_src/solvers/mujoco/solver_mujoco.py`): `joint_velocity_limit` is documented as not supported
+  (`:298-299`), and its read is commented out, "MoJoCo doesn't have velocity limit" (`:4309-4310`). Joint limits get
+  `solref_limit = (-ke, -kd)` from `joint_limit_ke/kd` (`:5134-5136`). Here those are Newton's defaults, 1e4 and 10.
+  Armature passes straight through (`:5112`). The effort limit is a joint-level `actfrcrange` on the summed P+D
+  actuator force (`:5143-5146`).
+- Side note: in 6 of the 11 blowing-up trajectories, a joint was already above 2× its limit one physics step before
+  `abnormal_robot` checked. The check runs once per control step, so T25's "within one substep" means "within one
+  control step".
+- Open: ~4 trajectories (index finger, steps 16–21) still blow up at 8 substeps + clamp. The clamp is applied per
+  1/120 s physics step, not per solver substep, which may explain part of this.

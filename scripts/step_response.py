@@ -61,6 +61,11 @@ parser.add_argument("--signals", type=str, default="abc", help="which signals to
 parser.add_argument("--clamp_vel", action="store_true",
                     help="T25 step 4: before every sim.step call, clip each joint's velocity to +-its velocity limit "
                          "with write_joint_velocity_to_sim (emulates PhysX's max joint velocity).")
+parser.add_argument("--no_self_collision", action="store_true",
+                    help="T25b test 1: robot spawn articulation_props.enabled_self_collisions=False (PhysX attribute; "
+                         "Newton's USD resolver falls back to it).")
+parser.add_argument("--num_substeps", type=int, default=None,
+                    help="T25b test 3: Newton solver substeps per physics step (task default 2). Newton only.")
 add_launcher_args(parser)
 args_cli, remaining_args = setup_preset_cli(parser)
 sys.argv = [sys.argv[0]] + remaining_args
@@ -86,6 +91,15 @@ def main(env_cfg: ManagerBasedRLEnvCfg, agent_cfg):
         adr_d = env_cfg.curriculum.adr.params["init_difficulty"]
         for name in ROBOT_RANDOMISATION_EVENTS:
             setattr(env_cfg.events, name, None)
+        if args_cli.no_self_collision:
+            env_cfg.scene.robot.spawn.articulation_props.enabled_self_collisions = False
+        print(f"[STEP] enabled_self_collisions="
+              f"{env_cfg.scene.robot.spawn.articulation_props.enabled_self_collisions}")
+        if args_cli.num_substeps is not None:
+            assert hasattr(env_cfg.sim.physics, "num_substeps"), type(env_cfg.sim.physics)
+            env_cfg.sim.physics.num_substeps = args_cli.num_substeps
+        print(f"[STEP] physics cfg {type(env_cfg.sim.physics).__name__}, sim.dt={env_cfg.sim.dt}, "
+              f"num_substeps={getattr(env_cfg.sim.physics, 'num_substeps', 'n/a')}")
         print(f"[STEP] ADR init_difficulty={adr_d}; disabled events {ROBOT_RANDOMISATION_EVENTS}; "
               f"signals {args_cli.signals}; presets: {PRESET_ARGS}")
 
@@ -105,7 +119,10 @@ def main(env_cfg: ManagerBasedRLEnvCfg, agent_cfg):
         vlim = _t(robot.data.joint_vel_limits).clone().float()
         n_clamped = [0, 0]  # [calls, joint-samples clipped]
 
+        sub_rec = []  # T25b: state before every sim.step call (physics step), reset per signal
+
         def apply_fixed_target():
+            sub_rec.append((_np(robot.data.joint_pos), _np(robot.data.joint_vel)))
             robot.set_joint_position_target_index(target=target[:, jids] if not isinstance(jids, slice) else target,
                                                   joint_ids=jids)
             if args_cli.clamp_vel:
@@ -135,10 +152,23 @@ def main(env_cfg: ManagerBasedRLEnvCfg, agent_cfg):
             obj.write_root_pose_to_sim_index(root_pose=pose)
             obj.write_root_velocity_to_sim_index(root_velocity=torch.zeros(n, 6, device=dev))
 
+        # T25b test 2: the joint state at the moment terminations are computed (before the auto-reset overwrites it)
+        tm = u.termination_manager
+        pre = {}
+        _orig_compute = tm.compute
+
+        def compute_and_record(*a, **kw):
+            pre["pos"] = _np(robot.data.joint_pos)
+            pre["vel"] = _np(robot.data.joint_vel)
+            return _orig_compute(*a, **kw)
+
+        tm.compute = compute_and_record
+
         def run(signal_fn, tag):
             reset_all()
-            tm = u.termination_manager
-            rec = {"joint_pos": [], "joint_vel": [], "target": [], "reset": []}
+            sub_rec.clear()
+            rec = {"joint_pos": [], "joint_vel": [], "target": [], "reset": [], "pre_joint_pos": [],
+                   "pre_joint_vel": []}
             rec.update({f"term_{t}": [] for t in tm.active_terms})
             for k in range(T):
                 target[:] = torch.clamp(signal_fn(k), lo, hi)
@@ -147,9 +177,13 @@ def main(env_cfg: ManagerBasedRLEnvCfg, agent_cfg):
                 rec["joint_vel"].append(_np(robot.data.joint_vel))
                 rec["target"].append(target.cpu().numpy().copy())
                 rec["reset"].append((terminated | truncated).float().cpu().numpy())
+                rec["pre_joint_pos"].append(pre["pos"])
+                rec["pre_joint_vel"].append(pre["vel"])
                 for t in tm.active_terms:
                     rec[f"term_{t}"].append(tm.get_term(t).float().cpu().numpy())
             out = {f"{tag}_{k}": np.stack(v) for k, v in rec.items()}
+            out[f"{tag}_sub_joint_pos"] = np.stack([s[0] for s in sub_rec])  # (physics steps, envs, joints)
+            out[f"{tag}_sub_joint_vel"] = np.stack([s[1] for s in sub_rec])
             out[f"{tag}_reset"] = np.maximum.accumulate(out[f"{tag}_reset"], axis=0)  # invalid from first reset on
             bad = int((out[f"{tag}_reset"][-1] > 0).sum())
             err = np.abs(out[f"{tag}_joint_pos"][-1] - out[f"{tag}_target"][-1]).max()
@@ -216,6 +250,17 @@ def main(env_cfg: ManagerBasedRLEnvCfg, agent_cfg):
         res["default_joint_pos"] = default.cpu().numpy()
         res["soft_joint_pos_limits"] = lim.cpu().numpy()
         res["joint_vel_limits"] = _np(robot.data.joint_vel_limits)
+        res["joint_pos_limits"] = _np(robot.data.joint_pos_limits)
+        res["no_self_collision"] = np.array(args_cli.no_self_collision)
+        res["num_substeps"] = np.array(getattr(env_cfg.sim.physics, "num_substeps", -1))
+        with contextlib.suppress(Exception):  # Newton only: what MuJoCo's joint-limit solref is built from
+            from isaaclab_newton.physics.newton_manager import NewtonManager
+
+            m = NewtonManager.get_model()
+            for attr in ("joint_limit_ke", "joint_limit_kd", "joint_effort_limit", "joint_armature"):
+                res[f"newton_{attr}"] = m.__getattribute__(attr).numpy().copy()
+            print(f"[STEP] newton joint_limit_ke unique {np.unique(res['newton_joint_limit_ke'])}, "
+                  f"kd unique {np.unique(res['newton_joint_limit_kd'])}")
         for attr in ("joint_stiffness", "joint_damping", "joint_armature", "joint_friction_coeff"):
             with contextlib.suppress(Exception):
                 res[attr] = _np(getattr(robot.data, attr))
