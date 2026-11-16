@@ -678,3 +678,12 @@ From reading `scripts/trace_episode.py` and `scripts/plot_traces.py`, and the T1
   episodes of the trained model and look for velocity blow-ups (joints over their limit); and study how that
   simulator applies its constraints (soft or hard contacts, drive model), since that tells you how it will compare
   to the one the model was trained in.
+
+## 2026-11-16 13:45 UTC · Most PhysX → Newton blow-ups happen before the hand touches the cube (planning chat)
+
+From the T16 Reorient exports (final checkpoints, 4 envs, 720 steps, seed 42), distance from the nearest fingertip or
+palm to the cube centre. When the PhysX policy holds the cube in PhysX, that distance stays at **0.04–0.08 m** (all 8
+episodes run the full 360 steps). In Newton, the PhysX policy's episodes end on `abnormal_robot` after 8–61 steps,
+and in **8–9 of 15** of them the hand never got closer than **~0.09–0.29 m** to the cube. The fingers blew up in free
+air. So most of the failure is in the joint drives, not the contacts. T18/T19 (drives only) should already fix much
+of it; contact differences (a possible T24) come second. Only 4 envs; T18 measures the drive difference directly.
