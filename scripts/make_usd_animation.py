@@ -47,8 +47,8 @@ LOOKS = {
 
 
 def _make_material(stage, name, color, roughness, metallic):
-    mat = UsdShade.Material.Define(stage, f"/Looks/{name}")
-    sh = UsdShade.Shader.Define(stage, f"/Looks/{name}/Surface")
+    mat = UsdShade.Material.Define(stage, f"/World/Looks/{name}")
+    sh = UsdShade.Shader.Define(stage, f"/World/Looks/{name}/Surface")
     sh.CreateIdAttr("UsdPreviewSurface")
     sh.CreateInput("diffuseColor", Sdf.ValueTypeNames.Color3f).Set(Gf.Vec3f(*color))
     sh.CreateInput("roughness", Sdf.ValueTypeNames.Float).Set(roughness)
