@@ -386,7 +386,7 @@ design, randomisation and distillation (DeepMind, Humanoid, Machenta Robot Learn
   Finding 10; `results/blowup_diagnosis.md` T25b section, `results/t25b_tests.md`.
 
 ### T19 · System-ID: harness (agent), then the fit (by Sara)
-- status: todo
+- status: running
 - rewritten Mon 16 Nov 15:55 from T25b (Finding 10). PhysX is the "real robot"; only Newton changes.
 - why: make Newton's robot respond like PhysX's to the policy's fast finger commands, so that a policy trained in
   Newton works in PhysX (T21). T25b: MuJoCo Warp ignores joint velocity limits, and the coarse step lets fingers
@@ -491,3 +491,4 @@ design, randomisation and distillation (DeepMind, Humanoid, Machenta Robot Learn
 - 2026-11-16 13:55 UTC: T18 done: wrote `scripts/step_response.py` + `scripts/analyze_step_response.py` (1 fix: signal-a env→joint map differs by name between engines), smoke tests passed, ran 64 envs on both engines. Small signals match; open-loop policy replay blows up 28/64 Newton envs with no cube (Finding 8). T19 left for next wake-up so the planning chat can see Finding 8 first.
 - 2026-11-16 14:51 UTC: T25 done: committed step 1 (left uncommitted by an earlier wake-up), step 2 code read (PhysX side only), added `--adr max`, `--signals`, `--clamp_vel` and per-env termination terms to `step_response.py`, smoke-tested, ran signal c at ADR max on both engines and the clamped Newton run. Finding 9. T22 A/B still training (0/2 resumes each).
 - 2026-11-16 15:50 UTC: T25b done: added `--no_self_collision`, `--num_substeps`, and pre-reset/per-physics-step recording to `step_response.py`, plus `scripts/t25b_analysis.py`; smoke test, then 8 signal-c runs (≤ 4 at a time), and read the newton source. Finding 10. T19 proposal in STATUS.md. T22 A/B still training.
+- 2026-11-16 16:20 UTC: T19 started: recorded PhysX reference a+b+c at ADR max (`~/runs/step_response/t19_ref_physx.npz`), wrote `scripts/sysid_harness.py` (clamp once per solver substep via a wrapped `NewtonManager._step_solver`), 8-env smoke check launched, not yet verified. T22 A/B still training (0/2 resumes each).
