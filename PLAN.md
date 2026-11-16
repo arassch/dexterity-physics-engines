@@ -385,29 +385,40 @@ design, randomisation and distillation (DeepMind, Humanoid, Machenta Robot Learn
   ignores `joint_velocity_limit` (`solver_mujoco.py:298-299, 4309-4310`); joint limits use solref (−1e4, −10).
   Finding 10; `results/blowup_diagnosis.md` T25b section, `results/t25b_tests.md`.
 
-### T19 · System-ID harness (agent), then the fit (by Sara)
-- status: hold
-- on hold (Mon 16 Nov 14:00): T18 showed the four parameters below are already equal in both engines. Wait for T25;
-  the planning chat will revise this task from its result.
-- why: system identification. Find joint parameters that make Newton's robot track like PhysX's. The fit itself is
-  Sara's: it's the skill the simulation roles ask about.
-- requires: T18 `done`.
-- parameters, per joint group (arm 7, each finger 4 joints, thumb 4): a scale on PD stiffness, a scale on PD damping,
-  armature, and joint friction. That's 4 × 5 = 20 numbers. Set them through the articulation's `write_joint_*_to_sim`
-  calls, not by editing configs.
-- **agent part:** write `scripts/sysid_harness.py`, a module plus a small CLI, that
-  1. loads the PhysX recording from T18,
-  2. builds a Newton env with N envs (64 or 128) and ADR at 0,
-  3. provides `rollout(params)`: `params` has shape (N, 20), the function applies one parameter set per env, replays
-     signals (a)–(c), and returns joint trajectories of shape (N, signals, steps, 23),
-  4. provides `default_params()`, and
-  5. with `--check`, rolls out the default parameters in every env and prints the RMS difference against PhysX per
-     signal, which should match T18's numbers.
-  Install `cma` with `scripts/pip_install.sh cma`. Run `--check`, record the numbers in `notes/log.md`, set this task
-  `blocked` and write "T19 harness ready for Sara" under "Needs a human". Don't write the loss or the optimiser.
-- **Sara's part (by hand):** `scripts/sysid_fit.py`, the loss and a CMA-ES loop over `rollout()`, capped at 2 h of GPU,
-  writing `results/sysid_robot.json` (best parameters, loss per generation), `results/plots/sysid_loss.png`, and step
-  responses for PhysX, default Newton and fitted Newton. Then "Finding 4" in `notes/log.md`. Sara sets T19 `done`.
+### T19 · System-ID: harness (agent), then the fit (by Sara)
+- status: todo
+- rewritten Mon 16 Nov 15:55 from T25b (Finding 10). PhysX is the "real robot"; only Newton changes.
+- why: make Newton's robot respond like PhysX's to the policy's fast finger commands, so that a policy trained in
+  Newton works in PhysX (T21). T25b: MuJoCo Warp ignores joint velocity limits, and the coarse step lets fingers
+  overshoot within one substep. A velocity clamp plus 8 substeps cut robot-only blow-ups from 47/64 to 17/64.
+- requires: T25b `done`. GPU limits above.
+- **fixed corrections (not fitted), applied in every Newton run from here on:**
+  1. velocity limit emulation: clip each finger joint's velocity to ±its limit at every *solver substep* if the
+     Newton/Isaac Lab API allows a per-substep hook; otherwise at every physics step (as in T25's `--clamp_vel`).
+     Say in `notes/log.md` which one you managed.
+  2. `num_substeps`: measure Newton's training speed (s/iteration, Lift 512 envs, 50 iterations, like T5) at 2, 4
+     and 8 substeps with the clamp, and pick the smallest that keeps signal-c blow-ups within 2 of the 8-substep count.
+     Record the choice and the speed cost in `results/sysid_settings.md`.
+- **fitted parameters (one shared set for all 16 finger joints; arm untouched, stiffness untouched):**
+  `armature` (0.01–0.1 kg·m²), `damping_scale` (0.5–4 × nominal), `effort_scale` (0.5–2 × the effort limit).
+  Optional 4th, only if Sara asks: joint-limit `ke` (1e3–1e5).
+- **agent part:** write `scripts/sysid_harness.py` (module + small CLI) that
+  1. loads PhysX's recorded trajectories for signals (a), (b), (c) (T18/T25b; re-record at ADR max with gravity if the
+     stored ones were at ADR 0, so both engines see the same conditions),
+  2. builds a Newton env with N envs (64 or 128), ADR max, the fixed corrections above, cube parked,
+  3. provides `rollout(params)`: `params` shape (N, 3), one set per env, applied with the articulation's
+     `write_joint_*_to_sim` calls after every reset; replays (a)–(c); returns a dict with `joint_pos`, `joint_vel`
+     (N, signal, steps, 23, joints **by name** in PhysX's order), `reset` (N, signal: did it hit abnormal_robot, and
+     at which step), and the matching PhysX arrays,
+  4. provides `default_params()` and `param_bounds()`,
+  5. `--check`: roll out the default params in every env and print, per signal, the RMS joint-position difference
+     to PhysX and the number of resets. With the fixed corrections it should be close to T25b's best row.
+  Then set this task `blocked` and write "T19 harness ready for Sara" under "Needs a human". Don't write a loss or an
+  optimiser.
+- **Sara's part (by hand):** `scripts/sysid_fit.py`: her loss (how far Newton's trajectories are from PhysX's, plus a
+  penalty for resets) and a CMA-ES loop over `rollout()`, capped at 2 h of GPU. Outputs `results/sysid_robot.json`
+  (best params, loss per generation), `results/plots/sysid_loss.png`, and step-response plots for PhysX, default Newton
+  and fitted Newton. Then "Finding 11" in `notes/log.md`. Sara sets T19 `done`.
 - result:
 
 ### T20 · Cross-evaluate with the fitted robot (eval only)
