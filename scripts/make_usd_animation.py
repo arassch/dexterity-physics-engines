@@ -72,6 +72,22 @@ def _bind(stage, path, mat, stop_at=()):
             UsdGeom.Gprim(over).CreateDisplayColorAttr([color])  # for viewers that ignore materials
 
 
+def _uninstance(stage, root):
+    """Robot assets put their visual meshes in instanceable prims, which can't take overrides (that's why the robot
+    stayed white). Turn instancing off under root, in our layer only, so each mesh can get a material."""
+    root_prim = stage.GetPrimAtPath(root)
+    if not root_prim:
+        return 0
+    count = 0
+    while True:
+        found = [p for p in Usd.PrimRange(root_prim, Usd.TraverseInstanceProxies()) if p.IsInstance()]
+        if not found:
+            return count
+        for p in found:
+            stage.OverridePrim(p.GetPath()).SetInstanceable(False)
+        count += len(found)
+
+
 def _env_path(path: str, i: int) -> str:
     return path.replace("/World/envs/env_0", f"/World/envs/env_{i}", 1)
 
@@ -139,6 +155,9 @@ def main():
         animated.append((obj_path, lambda e: _matrix(Gf.Vec3d(*e["object_pos"]) + origin, e["object_quat"])))
 
         if mats:
+            n = _uninstance(stage, _env_path(usd["robot_root"], i))
+            if n:
+                print(f"env {i}: turned off instancing on {n} prims so the robot meshes can be coloured")
             links = set(prim_of.values())
             for b, p in prim_of.items():
                 _bind(stage, p, mats["arm" if b.startswith("iiwa") else "hand"], stop_at=links)
