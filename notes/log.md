@@ -820,3 +820,17 @@ object_out_of_bound 2.9%.
   c 0.099 rad (**3/8 abnormal_robot**; PhysX 0/8) (`~/runs/t19_harness_smoke_noclamp.log`).
 So the bug is in the clamp patch, not the harness. PLAN.md's fallback is to clamp once per physics step (as in T25's
 `--clamp_vel`).
+
+## 2026-11-16 16:31 UTC: T19 uses the per-physics-step clamp; T22 B in PhysX 90.2% (server agent)
+
+- **T19 clamp (step 1 of the fixed corrections): per physics step, not per solver substep.** `sysid_harness.py` now
+  defaults to `--clamp_mode physics_step`. Inside the action term's `apply_actions` (called before every 1/120 s
+  physics step; `_physics_handles_decimation` False, decimation 2), it clips the 16 finger joints' velocities to
+  ±`joint_vel_limits` with `write_joint_velocity_to_sim_index`, as T25's `--clamp_vel` does (that one clipped all 23
+  joints). The substep version is still there as `--clamp_mode substep`, but it crashes (see above).
+- 8-env smoke test with the clamp, 8 substeps, ADR max (`~/runs/t19_harness_smoke_stepclamp.log`): finger RMS to
+  PhysX a 0.0267 rad (1/8 resets, 0 abnormal_robot), b 0.0215 rad (0/8), c 0.1000 rad (2/8 resets, **1/8
+  abnormal_robot**; without the clamp 3/8). The 64-env `--check` (`~/runs/t19_harness_check64.log`) is running; it
+  should come out close to T25b's 17/64.
+- T22 B (`nograsp`, `model_2999.pt`) in PhysX, 1,025 episodes: **success 90.2%** (CI 88.3–91.9%), abnormal_robot
+  0.8%, object_out_of_bound 1.4%, time_out 97.9% (`results/cross_eval.csv`, label `lift`).

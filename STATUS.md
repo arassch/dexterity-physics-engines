@@ -1,36 +1,34 @@
 # Status
-Updated: 2026-11-16 16:37 UTC by the server agent (wake-up: state changed, T22 B finished)
+Updated: 2026-11-16 16:31 UTC by the server agent (wake-up: state changed, T22 B-in-PhysX eval finished)
 
-Instance hours since 15 Nov 16:00 UTC: **≈ 4.2 h ≈ $15.3** (estimate, as before plus ~0.3 h).
+Instance hours since 15 Nov 16:00 UTC: **≈ 4.2 h ≈ $15.3** (estimate; the previous STATUS stamp of 16:37 was a
+mistake, since it was earlier than now).
 
 ## GPU jobs
 | Task | Engine | Iteration | Success | abnormal_robot | ADR | ETA |
 |---|---|---|---|---|---|---|
-| T22 A `noactpen` | PhysX (Lift) | 2,800 / 3,000 | 0.0 | 0.011 | 0.0 | ~16 min |
-| T22 eval: B in PhysX | PhysX | eval, 1,024 eps | – | – | – | minutes |
+| T22 A `noactpen` | PhysX (Lift) | 2,966 / 3,000 | 0.0 | 0.012 | 0.0 | ~3 min |
+| T22 eval: baseline `model_3000.pt` in PhysX | PhysX | eval, 1,024 eps | – | – | – | minutes |
+| T19 harness `--check`, 64 envs | Newton | rollout a/b/c | – | – | – | minutes |
 
-GPU 10.3 GB / 46 GB. Training success rates include exploration noise. A: 4.79 s/iteration, action std 1.65 (B: 0.73).
+GPU ~5–10 GB / 46 GB. Training success rates include exploration noise. A's success has been 0.0 throughout.
 
 ## Since last update
-- **T22 B (`nograsp`) finished normally** (`2026-11-16_12-46-44`, 12,814 s, 0 resumes). Final: success 0.93
-  (training), abnormal_robot 0.017, ADR 0.986, mean reward 19.05, 4.25 s/iter. Backed up `model_2999.pt`, configs,
-  final excerpt; RUNS.md, README, notes/log.md updated.
-- T22 evals: **T1 baseline `model_3000.pt` in Newton: 0.0%** (1,026 eps, abnormal_robot 97.1%). B in PhysX is running.
-  Baseline in PhysX waits for B's eval to finish (`eval.sh` gives both the same log name).
-  A in PhysX and Newton come after A finishes.
-- **T19:** per-substep clamp smoke test failed again (attempt 2 of 2). The fix kept the first CUDA graph alive and
-  synchronised around the re-capture; same `illegal memory access` on the first `env.step()`. The `--no_clamp` smoke
-  test **passes**: signal-c finger RMS to PhysX 0.099 rad, 3/8 abnormal_robot (PhysX 0/8); a 0.027 rad, b 0.022 rad.
-  So the harness works and the bug is in the substep patch. Next wake-up: switch to PLAN.md's fallback, a clamp once
-  per physics step (like T25's `--clamp_vel`), unless told otherwise.
+- T22 B (`nograsp`) in PhysX: **90.2%** (1,025 eps, CI 88.3–91.9%), abnormal_robot 0.8%. Row committed to
+  `results/cross_eval.csv`. Its log is kept as `~/runs/eval_lift_nograsp_in_physx.log`.
+- Started the T1 baseline `model_3000.pt` in PhysX eval (`~/runs/eval_lift_physx_in_physx.log`).
+- **T19:** switched `scripts/sysid_harness.py` to PLAN.md's fallback: finger velocities are clamped once per physics
+  step (`--clamp_mode physics_step`, the new default). The 8-env smoke test **passes**: signal c gives 1/8
+  abnormal_robot (3/8 without the clamp); RMS a 0.027, b 0.022, c 0.100 rad. The 64-env `--check` is running
+  (`~/runs/t19_harness_check64.log`).
+- Next wake-up: back up A when it finishes, then run A's evals (PhysX and Newton) and the clips. Read the 64-env check.
+  Then T19's speed test (2/4/8 substeps), which needs the `scripts/train_clamped.py` wrapper.
 
 ## Needs a human
-- T19: the per-solver-substep clamp (wrapping `NewtonManager._step_solver` + graph re-capture) crashes CUDA twice. I'll
-  use the plan's per-physics-step fallback. T25b's 17/64 was measured with a per-physics-step clamp, so the fallback
-  should reproduce it. If you'd rather I debug the substep hook (for example, install it before the first graph
-  capture), say so in PLAN.md.
-- T19 speed test: it still needs a `scripts/train_clamped.py` wrapper (installs the clamp, then runs train.py
-  unchanged). I'll write it unless told otherwise.
+- T19: the per-solver-substep clamp crashed CUDA twice, so the harness uses the per-physics-step fallback (smoke test
+  OK). If you want the substep hook debugged instead, say so in PLAN.md.
+- T19 speed test: I'll write `scripts/train_clamped.py` (installs the same per-physics-step clamp, then runs train.py
+  unchanged) unless told otherwise.
 - At ADR max, `variable_gravity` gives g_z ≈ −7.1 to −7.6, not −9.81. FYI.
 - Sara: "What I learned" notes for T17, T23, T18, T25 and T25b.
 - Still open from before: watching the 10 Reorient clips.

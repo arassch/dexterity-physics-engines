@@ -2,9 +2,10 @@
 
 PhysX is the "real robot". This builds a Newton (MuJoCo Warp) Reorient Play env, robot only (cube parked), ADR max,
 robot randomisation events off (as in scripts/step_response.py), with T19's fixed corrections:
-  1. velocity-limit emulation: each finger joint's velocity is clipped to +-its velocity limit before EVERY solver
-     substep (NewtonManager._step_solver is wrapped with a Warp kernel and the CUDA graph re-captured; MuJoCo Warp
-     re-reads state.joint_qd every substep because update_data_interval=1).
+  1. velocity-limit emulation: each finger joint's velocity is clipped to +-its velocity limit once per physics step
+     (default --clamp_mode physics_step, like T25's --clamp_vel). The per-solver-substep variant (--clamp_mode substep:
+     NewtonManager._step_solver wrapped with a Warp kernel, CUDA graph re-captured) crashed twice with a CUDA illegal
+     memory access, so PLAN.md's fallback is the default.
   2. num_substeps (--num_substeps, default 8 until the T19 speed test picks one).
 
 Use as a module (inside Isaac Lab's Python, launched with scripts/run_isaac.sh):
@@ -58,7 +59,9 @@ BOUNDS_HI = np.array([0.1, 4.0, 2.0], dtype=np.float32)
 parser = argparse.ArgumentParser(description="T19 Newton system-ID harness")
 parser.add_argument("--num_envs", type=int, default=64)
 parser.add_argument("--num_substeps", type=int, default=8)
-parser.add_argument("--no_clamp", action="store_true", help="disable the per-substep velocity clamp (diagnostics)")
+parser.add_argument("--no_clamp", action="store_true", help="disable the velocity clamp (diagnostics)")
+parser.add_argument("--clamp_mode", choices=("physics_step", "substep"), default="physics_step",
+                    help="physics_step (default, T19 fallback) or substep (crashes with CUDA illegal memory access)")
 parser.add_argument("--ref", type=str, default=os.path.expanduser("~/runs/step_response/t19_ref_physx.npz"),
                     help="PhysX recording from step_response.py --adr max --signals abc")
 parser.add_argument("--seed", type=int, default=42)
@@ -132,9 +135,21 @@ class Harness:
         self.target = torch.zeros(self.n, 23, device=self.dev)
         jids = self.term._joint_ids
 
+        self.clamp = clamp
+        self.clamp_mode = args_cli.clamp_mode
+        self.vlim = _t(self.robot.data.joint_vel_limits).clone().float()
+        fmask = torch.zeros(23, dtype=torch.bool, device=self.dev)
+        fmask[self.finger_ids] = True
+        self.fmask = fmask
+        step_clamp = clamp and self.clamp_mode == "physics_step"
+
         def apply_fixed_target():
             self.robot.set_joint_position_target_index(
                 target=self.target if isinstance(jids, slice) else self.target[:, jids], joint_ids=jids)
+            if step_clamp:  # T19 fallback: clip finger velocities once per physics step (as T25's --clamp_vel)
+                v = _t(self.robot.data.joint_vel).clone().float()
+                vc = torch.where(self.fmask, torch.clamp(v, -self.vlim, self.vlim), v)
+                self.robot.write_joint_velocity_to_sim_index(velocity=vc)
 
         self.term.apply_actions = apply_fixed_target
         self.zero_action = torch.zeros(self.n, u.action_manager.total_action_dim, device=self.dev)
@@ -143,11 +158,14 @@ class Harness:
         self.nom_damping = _t(self.robot.data.joint_damping).clone().float()[:, self.finger_ids]
         self.nom_effort = _t(self.robot.data.joint_effort_limits).clone().float()[:, self.finger_ids]
         self.nom_armature = _t(self.robot.data.joint_armature).clone().float()[:, self.finger_ids]
-        self.clamp = clamp
         self.num_substeps = num_substeps
-        if clamp:
+        if clamp and self.clamp_mode == "substep":
             idx, _ = install_substep_clamp(self.robot, self.finger_ids, self.n)
             print(f"[SYSID] per-substep velocity clamp installed on {idx.shape[0]} finger dofs")
+        elif step_clamp:
+            print(f"[SYSID] per-physics-step velocity clamp on {len(self.finger_ids)} finger joints x {self.n} envs; "
+                  f"physics handles decimation: {getattr(u, '_physics_handles_decimation', '?')} "
+                  f"(decimation {u.cfg.decimation})")
 
         # PhysX reference, mapped by name to this env's joint order and to PhysX order for output
         ref = np.load(ref_path)
@@ -237,7 +255,7 @@ class Harness:
 
 def check(h: Harness):
     out = h.rollout(h.default_params())
-    print(f"[SYSID] check: {h.n} envs, num_substeps={h.num_substeps}, clamp={h.clamp}, "
+    print(f"[SYSID] check: {h.n} envs, num_substeps={h.num_substeps}, clamp={h.clamp} ({h.clamp_mode}), "
           f"nominal finger armature mean {float(h.nom_armature.mean()):.4f}, "
           f"damping mean {float(h.nom_damping.mean()):.4f}, effort mean {float(h.nom_effort.mean()):.4f}")
     for si, s in enumerate(SIGNALS):
