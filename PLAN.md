@@ -300,7 +300,7 @@ design, randomisation and distillation (DeepMind, Humanoid, Machenta Robot Learn
   controls reproduce T6/T13. Finding 7; `results/cross_eval.md` "Joints matched by name"; `results/joint_order.json`.
 
 ### T18 · Robot-only step-response test (eval only, no policy)
-- status: todo
+- status: done
 - why: this is our "real-world dataset". Treat PhysX as reality and record how each joint responds to the same command
   in both engines, with no cube involved.
 - requires: T17 and T23 `done`. About 30 min of GPU. Compare and replay joints **by name** (`results/joint_order.json`), never by index.
@@ -314,7 +314,9 @@ design, randomisation and distillation (DeepMind, Humanoid, Machenta Robot Learn
 - write `results/step_response.md`: for each joint, the rise time (10–90%), overshoot and steady-state error in each engine,
   and the RMS position difference between the engines for signals (a)–(c). Plots in `results/plots/step_<joint>.png`
   for the 6 joints with the biggest difference.
-- result:
+- result: small signals match: mean RMS PhysX−Newton 0.0045 rad (a, steps), 0.0030 rad (b, finger sine); nominal
+  stiffness/damping/armature/friction read identical. (c) the PhysX policy's targets replayed open-loop, no cube:
+  **28/64 Newton envs reset (steps 15–44), 0/64 PhysX**; RMS before reset 0.067 rad. Finding 8; `results/step_response.md`.
 
 ### T19 · System-ID harness (agent), then the fit (by Sara)
 - status: todo
@@ -403,3 +405,4 @@ design, randomisation and distillation (DeepMind, Humanoid, Machenta Robot Learn
 - 2026-11-16 13:08 UTC: T22 step 0 passed (after fixing train.sh's override pattern to allow digits); started A (`noactpen`) and B (`nograsp`). T17 done: traces, diagnosis, plots; found that PhysX and Newton order the hand joints differently. T18 not started yet (next wake-up). Resumes used: T22 A 0/2, B 0/2.
 - 2026-11-16 13:12 UTC: T23 started: steps 1–3 done (`scripts/dump_order.py`, `results/joint_order.json`, `evaluate.py --match_order`, smoke test passed the name check). Started the 4 Reorient `reorient_matched` cells; the 4 Lift cells come next. T22 A/B training, ~iter 320/3000.
 - 2026-11-16 13:22 UTC: T23 done: all 8 matched cells finished (no errors); cross-engine cells still ~0%, controls match T6/T13. Wrote cross_eval.md table, Finding 7, README line. T18 not started (out of time this wake-up).
+- 2026-11-16 13:55 UTC: T18 done: wrote `scripts/step_response.py` + `scripts/analyze_step_response.py` (1 fix: signal-a env→joint map differs by name between engines), smoke tests passed, ran 64 envs on both engines. Small signals match; open-loop policy replay blows up 28/64 Newton envs with no cube (Finding 8). T19 left for next wake-up so the planning chat can see Finding 8 first.

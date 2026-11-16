@@ -687,3 +687,28 @@ episodes run the full 360 steps). In Newton, the PhysX policy's episodes end on 
 and in **8–9 of 15** of them the hand never got closer than **~0.09–0.29 m** to the cube. The fingers blew up in free
 air. So most of the failure is in the joint drives, not the contacts. T18/T19 (drives only) should already fix much
 of it; contact differences (a possible T24) come second. Only 4 envs; T18 measures the drive difference directly.
+
+## 2026-11-16 13:55 UTC: Finding 8, the robots match on small commands, but the PhysX policy's commands blow Newton up with no cube (T18, server agent)
+
+Setup: `scripts/step_response.py`, Reorient Play env, `presets=cube`, 64 envs, ADR difficulty 0, robot startup
+randomisation (gains, joint friction, material) off, cube parked 1.5 m+ away, 120 control steps (2 s) per signal,
+open-loop absolute joint targets (the action term's `apply_actions` replaced). Joints compared by name.
+Analysis: `scripts/analyze_step_response.py` → `results/step_response.md`, `results/plots/step_<joint>.png`.
+
+- **Nominal parameters are identical.** `robot.data` reads the same stiffness (arm 300/300/300/300/100/50/25, fingers
+  3), damping (arm 45…15, fingers 0.1), armature (0.01) and joint friction (arm 1.0, fingers 0.01) in both engines.
+- **(a) 0.3 rad step, one joint at a time:** mean RMS difference 0.0045 rad. Rise times equal to one control step on
+  20/23 joints; finger overshoot 36–41% in both (PhysX ~1 pp higher). Largest gaps: iiwa7_joint_6 (rise 0.63 s vs
+  0.92 s, RMS 0.012 rad), iiwa7_joint_7 (0.011), iiwa7_joint_5 (0.006). On joint 6 PhysX stops dead at 95% of the step
+  at ~0.9 s (looks like joint-friction stiction); Newton creeps to the same 95% by 2 s.
+- **(b) 1 Hz, 0.2 rad sine on all fingers:** mean RMS 0.0030 rad (finger joints 0.0042, largest thumb_joint_0 0.012).
+- **(c) T17 physx→physx policy targets replayed open-loop:** **28/64 Newton envs reset (first reset at step 15–44,
+  median 25), 0/64 PhysX.** Before the resets, finger RMS differences are 0.05–0.14 rad (mean over all joints 0.067).
+  No cube is involved, and time_out can't fire within 120 steps, so these are almost certainly `abnormal_robot`
+  (the term wasn't recorded per env, a gap in the script).
+- **What it means:** the blow-up reproduces with the robot alone, and at the same 15–44 step timescale as the policy
+  rollouts (T17: 23–35). But slow, small, one-joint commands track almost identically. The difference shows up only
+  under the policy's large, fast, all-finger target changes. The four parameters T19 fits are already equal at their
+  nominal values, so a fit can only help by compensating something else (solver/integrator, effort or velocity
+  limit handling, self-collision between fingers). Signal (c) is the one the T19 loss should weight.
+- Caveat: at ADR 0 the `gravity_adr` curriculum sets gravity to 0, so the arm was tested without gravity load.

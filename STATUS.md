@@ -1,35 +1,37 @@
 # Status
-Updated: 2026-11-16 13:22 UTC by the server agent (wake-up: manual --once)
+Updated: 2026-11-16 13:56 UTC by the server agent (wake-up: state changed, PLAN.md updated)
 
-Instance hours since 15 Nov 16:00 UTC: **≈ 1.1 h ≈ $4** (estimate: ~0.3 h on 15 Nov, plus ~0.8 h today. Uptime
-says it booted at 12:34 UTC.)
+Instance hours since 15 Nov 16:00 UTC: **≈ 1.7 h ≈ $6** (estimate: ~0.3 h on 15 Nov, plus ~1.4 h today. Uptime says it
+booted at 12:34 UTC.)
 
 ## GPU jobs
 | Task | Engine | Iteration | Success | abnormal_robot | ADR | ETA |
 |---|---|---|---|---|---|---|
-| T22 A `noactpen` | PhysX (Lift) | 443 / 3,000 | 0.0 | ~0.013 | 0.0 | ~3.4 h |
-| T22 B `nograsp` | PhysX (Lift) | 482 / 3,000 | 0.0 | ~0.012 | 0.0 | ~2.9 h |
+| T22 A `noactpen` | PhysX (Lift) | 781 / 3,000 | 0.0 | (not in summary) | 0.0 | ~2.9 h |
+| T22 B `nograsp` | PhysX (Lift) | 870 / 3,000 | 0.0 | (not in summary) | 0.0 | ~2.5 h |
 
-GPU 10.6 GB / 46 GB. No eval jobs are running. Training success rates include exploration noise. Both variants are
-still at 0 success this early (T1's normal run also needed several hundred iterations).
+GPU 10.6 GB / 46 GB. No eval jobs are running now. Training success rates include exploration noise. Both variants are
+still at 0 success. object_out_of_bound is ~0.25 for both. B's `good_finger_contact` is 0 as intended (weight 0).
 
 ## Since last update
-- **T23 done.** I wrote `scripts/dump_order.py`, which produced `results/joint_order.json`, and added
-  `evaluate.py --match_order` (also the optional last argument of `eval.sh`). The smoke test passed the name check.
-  I then ran the 8 cells with about 1,024 episodes each.
-- **Result: matching the hand joints by name does not rescue transfer.** The cross-engine cells are:
-  - Lift: PhysX → Newton **0.2%** (2/1,027, abnormal_robot 98.5%), Newton → PhysX **0%**.
-  - Reorient: PhysX → Newton **0%** (abnormal_robot 95.1%), Newton → PhysX **0%**.
-
-  The controls reproduce T6/T13. PhysX → PhysX is identical. Newton → Newton is within the intervals (86.9 vs 87.0%,
-  63.9 vs 64.9%).
-- The hand-tip bodies resolve in the same order in both engines, so only the 16 hand joints had been permuted.
-- Wrote it up: "Joints matched by name" tables in `results/cross_eval.md`, Finding 7 in `notes/log.md`, and a line in
-  the README.
-- The away cells are still ~0%, so T18–T20 need no revision. T18 is next: it needs a new script, and there was no time
-  left in this wake-up.
+- **T18 done.** I wrote `scripts/step_response.py` and `scripts/analyze_step_response.py`. The analysis needed 1 fix:
+  signal (a) maps envs to joints in each engine's own order, so it is compared per named joint. Smoke tests passed on
+  both engines. I then ran 64 envs × 120 steps on PhysX and Newton.
+- **Result (Finding 8):**
+  - The nominal robot parameters read identical in both engines.
+  - Small commands track almost the same: mean RMS 0.0045 rad for the 0.3 rad steps and 0.0030 rad for the finger
+    sine.
+  - Replaying the PhysX policy's targets open-loop, **with no cube**, reset **28/64 Newton envs at steps 15–44**,
+    almost certainly `abnormal_robot`. PhysX reset 0/64.
+- Outputs: `results/step_response.md`, 6 plots in `results/plots/step_*.png`, and Finding 8 in `notes/log.md`.
 
 ## Needs a human
-- Sara: "What I learned" notes for T17 (`scripts/trace_episode.py`, `scripts/plot_traces.py`) and for T23
-  (`scripts/dump_order.py`, `evaluate.py --match_order`).
+- **T19 premise (planning chat): please confirm before the next wake-up.** T19 fits scales on stiffness and damping,
+  plus armature and friction. All four are already equal at their nominal values, and small signals match within
+  ~0.005 rad. The gap only appears under the policy's large, fast commands (signal c). A fit can still compensate,
+  but the cause may lie elsewhere: the solver/integrator, effort or velocity limits, or finger self-collision. If
+  PLAN.md is unchanged, I start the T19 harness as written at the next wake-up.
+- Also: at ADR 0 gravity is 0, so T18 ran the arm without gravity load. Say if T18/T19 should use ADR max gravity
+  instead.
+- Sara: "What I learned" notes for T17, T23 and now T18 (`scripts/step_response.py`, `scripts/analyze_step_response.py`).
 - Still open from before: watching the 10 Reorient clips.
