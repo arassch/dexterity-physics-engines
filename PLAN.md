@@ -318,8 +318,38 @@ design, randomisation and distillation (DeepMind, Humanoid, Machenta Robot Learn
   stiffness/damping/armature/friction read identical. (c) the PhysX policy's targets replayed open-loop, no cube:
   **28/64 Newton envs reset (steps 15–44), 0/64 PhysX**; RMS before reset 0.067 rad. Finding 8; `results/step_response.md`.
 
-### T19 · System-ID harness (agent), then the fit (by Sara)
+### T25 · Why does Newton blow up on large commands, robot only? (eval only) · before T19
 - status: todo
+- why: T18 (Finding 8) showed the four parameters T19 would fit are already equal, and small commands track within
+  ~0.005 rad, yet replaying the PhysX policy's targets with no cube resets 28/64 Newton robots. So the cause is
+  something that only shows up under large, fast, all-finger commands. Leading suspect (planning chat): **velocity
+  limits**. `abnormal_robot` fires at |v| > 2× the limit (12.6 rad/s for the hand); if PhysX clamps joint velocity at
+  the limit (6.28 rad/s) as part of its solver and Newton/MuJoCo doesn't, PhysX can almost never trip it and Newton can.
+  Other suspects: effort-limit handling (fingers saturate at 0.5 N·m), the integrator, finger self-collision.
+- requires: the GPU job limits above (eval only; may run alongside T22).
+- step 1 (no GPU): from `~/runs/step_response/{physx,newton}.npz` (signal c, before any reset) and the T17 traces,
+  per engine and per finger joint: max and 99th percentile of |joint_vel| / velocity limit, the fraction of steps at
+  0.98–1.02 of the limit (a clamp shows up as flat tops at exactly 1.0), and the fraction of steps where
+  |applied_torque| is at the effort limit. Plot |v|/limit over time for the 3 worst joints, both engines on one plot,
+  in `results/plots/vel_limit_<joint>.png`.
+- step 2 (no GPU): find how Isaac Lab hands velocity and effort limits to each engine, and whether each engine enforces
+  them (PhysX articulation joint max velocity; Newton / MuJoCo Warp joint or actuator limits). Quote the relevant lines
+  with file:line in `notes/log.md`.
+- step 3: rerun T18 signal (c) on both engines with gravity as in the Play config (the policies are evaluated at ADR
+  max, where gravity is on), e.g. a `--adr max` option on `scripts/step_response.py`. Record the termination term per
+  env this time.
+- step 4 (only if step 1 or 2 points at velocity limits): rerun Newton signal (c) with the velocity clamp emulated: after
+  every physics step if the API allows a callback, otherwise every control step, clip each joint's velocity to ±its
+  limit with `write_joint_velocity_to_sim`. Count resets. Same for an effort-limit idea if step 1 points there.
+- on done: `results/blowup_diagnosis.md` (short: the table from step 1, what each engine enforces, step 3 and step 4
+  reset counts), "Finding 9" in `notes/log.md`, and under "Needs a human" a proposal for what T19 should fit instead
+  (for example an emulated velocity limit, or an effort-limit scale). Don't change T19 yourself.
+- result:
+
+### T19 · System-ID harness (agent), then the fit (by Sara)
+- status: hold
+- on hold (Mon 16 Nov 14:00): T18 showed the four parameters below are already equal in both engines. Wait for T25;
+  the planning chat will revise this task from its result.
 - why: system identification. Find joint parameters that make Newton's robot track like PhysX's. The fit itself is
   Sara's: it's the skill the simulation roles ask about.
 - requires: T18 `done`.
