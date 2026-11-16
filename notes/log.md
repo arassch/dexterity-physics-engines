@@ -712,3 +712,38 @@ Analysis: `scripts/analyze_step_response.py` → `results/step_response.md`, `re
   nominal values, so a fit can only help by compensating something else (solver/integrator, effort or velocity
   limit handling, self-collision between fingers). Signal (c) is the one the T19 loss should weight.
 - Caveat: at ADR 0 the `gravity_adr` curriculum sets gravity to 0, so the arm was tested without gravity load.
+
+## 2026-11-16 15:00 UTC: T25 steps 1–2, PhysX holds finger velocities at the limit; Newton goes past it (server agent)
+
+Step 1 (`scripts/blowup_analysis.py` → `results/blowup_step1.md`, plots `results/plots/vel_limit_<joint>.png`).
+|joint_vel| / velocity limit, sampled once per control step. Limits read from `robot.data` are the same in both
+engines: arm 10 rad/s, fingers 6.283 rad/s. `abnormal_robot` fires above 2.0.
+
+| source | engine | finger max | finger p99 (worst joint) | finger frac > 1.02 | finger frac at effort limit |
+|---|---|---|---|---|---|
+| T18 signal c (no cube) | PhysX | 1.01 | 1.00 | 0.0000 | n/a |
+| T18 signal c (no cube) | Newton | 2.00 | 1.34 | 0.0104 | n/a |
+| T17 policy trace | PhysX | 1.38 | 1.00 | 0.0003 | 0.495 |
+| T17 policy trace | Newton | 22.61 | 2.06 | 0.0290 | 0.332 |
+
+- In PhysX, with no cube, every finger joint's max is exactly **1.00–1.01 × limit**, and none goes above 1.02 in
+  7,680 samples. The p99 of 9 joints is 1.00. That flat top at the limit is what a solver clamp looks like. With the
+  cube (T17), PhysX goes above 1.02 in only 0.03% of samples (max 1.38, probably contact impulses).
+- Newton has the same limit but goes past it: 1.0% of no-cube samples and 2.9% of policy samples are above 1.02,
+  with a max of 2.00 (no cube) and 22.6 (policy). Its at-limit fraction (0.25%) is *lower* than PhysX's (0.96%), so
+  nothing is holding it at the limit.
+- Effort: fingers hit the 0.5 N·m limit in 50% of PhysX trace samples and 33% of Newton's. The PhysX policy works
+  with saturated fingers all the time. This doesn't point at effort handling as the cause (`applied_torque` is Isaac
+  Lab's clipped estimate, not read back from the engine).
+
+Step 2, code (Isaac Lab 3.0 container):
+- PhysX: `isaaclab_physx/assets/articulation/articulation.py:1578` writes the limits into the engine,
+  `self.root_view.set_dof_max_velocities(wp.clone(self.data._joint_vel_limits, device="cpu"), indices=cpu_env_ids)`,
+  and `articulation_data.py:1536` reads them back with `get_dof_max_velocities()`. So the limit is a PhysX
+  articulation property (max joint velocity), and the data above shows PhysX clamping at it.
+- Newton: `isaaclab_newton/assets/articulation/articulation_data.py:1497` binds the same number to the Newton model
+  attribute `joint_velocity_limit` (`self._root_view.get_attribute("joint_velocity_limit", SimulationManager.get_model())`).
+  The Isaac Lab side's other use is a check that the *default* velocities are within it (`articulation.py:3950`).
+  **Not checked yet:** whether Newton's MuJoCo Warp solver reads `joint_velocity_limit`. The `newton` package lives
+  under `/workspace/isaaclab/_isaac_sim/kit/python/.../site-packages`, which this agent's permissions can't read.
+  The data says it doesn't clamp.
