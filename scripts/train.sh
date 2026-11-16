@@ -60,7 +60,7 @@ if [[ -n "$TAG" ]]; then
   [[ "$TAG" =~ ^[A-Za-z0-9_-]+$ ]] || { echo "--tag may only contain letters, digits, _ -" >&2; exit 1; }
   NAME="${NAME}_${TAG}"
 fi
-for o in "${OVERRIDES[@]}"; do [[ "$o" =~ ^env\.rewards\.[a-z_]+\.weight=-?[0-9.]+$ ]] || { echo "only env.rewards.<term>.weight=<number> overrides are allowed: $o" >&2; exit 1; }; done
+for o in "${OVERRIDES[@]}"; do [[ "$o" =~ ^env\.rewards\.[a-z0-9_]+\.weight=-?[0-9.]+$ ]] || { echo "only env.rewards.<term>.weight=<number> overrides are allowed: $o" >&2; exit 1; }; done
 if [[ -n "${RESUME_RUN:-}" ]]; then
   RESUME_ARGS=(--resume --load_run "$RESUME_RUN" --checkpoint "${CHECKPOINT:?set CHECKPOINT when resuming}")
   NAME="${NAME}_resume_$(date +%m%d-%H%M)"   # unique, so a second resume never overwrites the first log

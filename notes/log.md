@@ -556,3 +556,51 @@ episodes, seed 42). The PhysX playback exported the flattened scene (12.9 MB `.u
 prims, so every link can be animated. Each recording: 720 steps × 4 envs, ~6.5 MB JSON. The PhysX → PhysX run had 8
 episode ends (two per env, as expected for 720 steps without early terminations). Files are in `~/runs/exports/` on the
 server and in Sara's Dropbox (`dexterity-physics-engines/demo_files/`), not in git.
+
+## 2026-11-16 13:05 UTC: T22 started; train.sh override check fixed (server agent)
+
+`scripts/train.sh` rejected the plan's exact override `env.rewards.action_l2.weight=0`. Its check allowed only
+`[a-z_]` in the term name, and `action_l2` / `action_rate_l2` contain a digit. Changed the pattern to `[a-z0-9_]`;
+it still only accepts `env.rewards.<term>.weight=<number>`. The step-0 check (5 its, folder `2026-11-16_12-44-30`)
+then showed `action_l2: weight: 0` in `params/env.yaml` (and `action_rate_l2: -0.005`, untouched). Started variant A
+(`noactpen`, `2026-11-16_12-45-44`) and B (`nograsp`, `2026-11-16_12-46-44`). Both term names for B
+(`good_finger_contact`, `contact_count`) exist in env.yaml.
+
+## 2026-11-16 13:05 UTC: T17 — what `abnormal_robot` checks, and a joint-order mismatch between engines (server agent)
+
+**Step 1, the check.** `abnormal_robot_state` in `dexsuite/mdp/terminations.py`:
+
+```python
+joint_vel = robot.data.joint_vel.torch
+joint_vel_limits = robot.data.joint_vel_limits.torch
+return (joint_vel.abs() > (joint_vel_limits * 2)).any(dim=1)
+```
+
+Its only condition is a joint speed above **2× the joint velocity limit**, on any of the 23 joints. Hand limits are
+6.28 rad/s, so the threshold is 12.57 rad/s. It is wired as `abnormal_robot = DoneTerm(func=mdp.abnormal_robot_state)`,
+plus the reward `early_termination` (weight −1) in `dexsuite_env_cfg.py`.
+
+**Steps 2–4.** `scripts/trace_episode.py` (+ `trace_episode.sh`), 16 envs × 120 steps per Reorient cell, state
+recorded before the reset. Details and tables are in `results/abnormal_robot_diagnosis.md`.
+
+| Cell | First episode ends with abnormal_robot | Median first step (min–max) |
+|---|---|---|
+| PhysX → PhysX | 0/16 | — |
+| PhysX → Newton | 14/16 | 16 (10–35) |
+| Newton → Newton | 2/16 | 10 (6–15) |
+| Newton → PhysX | 3/16 | 58 (41–84) |
+
+Only hand joints break the limit (PhysX → Newton: index_joint_3 in 6 envs, middle_joint_1, index_joint_0, ring_joint_1,
+index_joint_2 in 4 each), at 2.6–5.5× the limit. The applied torque is ~0.50 N·m (saturated) at that step. The
+median first step (16) is earlier than the ~35 inferred from T13's episode count, because T13's figure averages all
+episodes.
+
+**Surprise: PhysX and Newton order the hand joints differently.** The traces' `joint_names` (`scripts/joint_order.py`):
+PhysX lists the hand by level (`index_0, middle_0, ring_0, thumb_0, index_1, …`), Newton by finger
+(`index_0..3, middle_0..3, ring_0..3, thumb_0..3`). The arm joints 0–6 match. PhysX index → Newton index:
+`[0..6, 7, 11, 15, 19, 8, 12, 16, 20, 9, 13, 17, 21, 10, 14, 18, 22]`. The action term (`RelativeJointPositionAction`,
+`joint_names=[".*"]`) and the joint observations use the articulation's order. If nothing remaps them, every
+cross-engine eval (T6, T13, the T12/T15 clips) gave the policy permuted hand observations and sent its hand actions
+to the wrong joints. That may explain the 0% transfer by itself, rather than PD, armature or friction. Not verified:
+the test is a cross-eval with the hand joints remapped by name. That would change what `evaluate.py` measures, so
+it is left for a human (STATUS.md). It also matters for T18/T19: per-joint comparisons have to match joints by name.

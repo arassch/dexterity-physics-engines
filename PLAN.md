@@ -244,7 +244,7 @@ design, randomisation and distillation (DeepMind, Humanoid, Machenta Robot Learn
 - result:
 
 ### T17 · Why does `abnormal_robot` fire? (eval only)
-- status: todo
+- status: done
 - why: say exactly which condition ends PhysX → Newton episodes, on which joints, and after how many steps.
 - requires: the GPU job limits above. About 30 min of GPU.
 - step 1: read `abnormal_robot_state` in Isaac Lab
@@ -261,7 +261,7 @@ design, randomisation and distillation (DeepMind, Humanoid, Machenta Robot Learn
   `abnormal_robot`, which sub-condition fired (joint limit, velocity, ...), and the 3 joints that most often break it,
   with the values at that step. Add `scripts/plot_traces.py`, which writes `results/plots/trace_<cell>.png`: for those 3
   joints, target vs actual position over the first 120 steps, both engines on one plot.
-- result:
+- result: only condition is |joint_vel| > 2× limit; PhysX→Newton 14/16 envs, median step 16 (10–35), hand joints only (index_3, middle_1, index_0 …) at 2.6–5.5× limit; PhysX→PhysX 0/16. Engines order hand joints differently (see `results/abnormal_robot_diagnosis.md`)
 
 ### T18 · Robot-only step-response test (eval only, no policy)
 - status: todo
@@ -323,7 +323,8 @@ design, randomisation and distillation (DeepMind, Humanoid, Machenta Robot Learn
   real gain and the budget allows. Don't start any training before that decision.
 
 ### T22 · Reward experiment · Lift · PhysX (two variants, 3,000 iterations)
-- status: todo
+- status: running
+- run_folder: check `2026-11-16_12-44-30`; A `2026-11-16_12-45-44` (log `~/runs/lift_physx_3000_noactpen.log`); B `2026-11-16_12-46-44` (log `~/runs/lift_physx_3000_nograsp.log`)
 - why: show how rewards shape behaviour (reward design is the RL skill every robot-learning role asks about), and
   test whether a less smooth policy transfers to Newton even worse. This task changes reward weights, but only through
   the exact `--override` lines below.
@@ -362,3 +363,4 @@ design, randomisation and distillation (DeepMind, Humanoid, Machenta Robot Learn
 - 2026-11-15 15:45 UTC: T14 cmd 2 (Newton, 4 clips) and T15 cmd 1 (PhysX→Newton clip) finished without errors; started T15 cmd 2 (Newton policy in PhysX). T14 cmd 1 still recording.
 - 2026-11-15 15:45 UTC: T13: all four rows were already in `cross_eval.csv` (no reruns); wrote results/cross_eval.md Reorient section, Finding 3, README; set `done`. Started T14 commands 1 and 2 and T15 command 1 (3 video jobs).
 - 2026-11-15 15:50 UTC: T14 cmd 1 (PhysX, 4 clips) and T15 cmd 2 (Newton→PhysX clip) finished without errors; wrote Reorient sections in `results/videos.md`; set T14 and T15 `done`. No `todo` tasks left; GPU idle.
+- 2026-11-16 13:08 UTC: T22 step 0 passed (after fixing train.sh's override pattern to allow digits); started A (`noactpen`) and B (`nograsp`). T17 done: traces, diagnosis, plots; found that PhysX and Newton order the hand joints differently. T18 not started yet (next wake-up). Resumes used: T22 A 0/2, B 0/2.
