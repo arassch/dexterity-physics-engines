@@ -101,6 +101,8 @@ def main():
     ap.add_argument("--all_envs", action="store_true")
     ap.add_argument("--usd_from", default="", help="Take the scene's prim paths from this recording (a PhysX one), "
                     "for a recording played in Newton, which can't export the scene itself.")
+    ap.add_argument("--layer", action="append", default=[], help="Extra .usda layer(s) to put on top, e.g. shared "
+                    "lights or camera edits (strongest first). Repeatable.")
     ap.add_argument("--keep_materials", action="store_true", help="Don't replace the scene's materials with plain colours.")
     ap.add_argument("--goal_size", type=float, default=0.06, help="Edge length (m) of the goal marker cube.")
     args = ap.parse_args()
@@ -123,9 +125,12 @@ def main():
 
     scene = Usd.Stage.Open(args.scene)
     layer = Sdf.Layer.CreateNew(args.out)
-    layer.subLayerPaths.append(os.path.relpath(os.path.abspath(args.scene), os.path.dirname(os.path.abspath(args.out))))
+    out_dir = os.path.dirname(os.path.abspath(args.out))
+    for extra in args.layer:  # stronger than everything this script writes
+        layer.subLayerPaths.append(os.path.relpath(os.path.abspath(extra), out_dir))
+    layer.subLayerPaths.append(os.path.relpath(os.path.abspath(args.scene), out_dir))
     stage = Usd.Stage.Open(layer)
-    stage.SetEditTarget(layer)
+    stage.SetEditTarget(Usd.EditTarget(layer))
     fps = round(1.0 / meta["control_dt"])
     stage.SetTimeCodesPerSecond(fps)
     stage.SetFramesPerSecond(fps)
