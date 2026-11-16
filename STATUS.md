@@ -21,7 +21,11 @@ GPU 10.6 GB / 46 GB at 15:57. Training success rates include exploration noise. 
     solver substep**: it wraps `NewtonManager._step_solver` with a Warp kernel on the finger dofs of `state_0.joint_qd`
     and re-captures the CUDA graph. MuJoCo Warp copies `state.joint_qd` into its data at every substep
     (`update_data_interval=1`, `solver_mujoco.py:3278`), so the clamp takes effect each substep.
-  - 8-env smoke test of `--check` running (`~/runs/t19_harness_smoke.log`). Not verified yet.
+  - 8-env smoke test of `--check` **failed** (attempt 1 of 2 allowed): `torch.AcceleratorError: CUDA error: an
+    illegal memory access was encountered` (`~/runs/t19_harness_smoke.log:222`), after the env was built. Likely
+    cause: the clamp patch and graph re-capture (`_capture_or_defer_graph`). Next wake-up: rerun with
+    `CUDA_LAUNCH_BLOCKING`-style isolation (`--no_clamp` first to split harness bugs from clamp bugs), then fix.
+    T22 training processes are separate and unaffected.
 - Still to do for T19: verify the smoke test; full `--check` at 64 envs; signal-c counts at 2/4/8 substeps with the
   per-substep clamp; the training-speed test (Lift 512 envs, 50 iterations, 2/4/8 substeps with the clamp). The speed
   test waits for the two T22 training slots to free up (~44 min). It also needs the clamp inside training, i.e. a small
