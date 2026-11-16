@@ -72,6 +72,12 @@ Reorient (4,096-env runs), same settings:
 
 Neither task's policy transfers in either direction, and the failure modes are the same for both tasks.
 
+The two engines order the 16 hand joints differently, so in these original cross-engine cells a moved policy read and
+drove permuted hand joints: they were confounded by the joint order. With the joints matched by name (T23), all four
+cross-engine cells are still ~0% (Lift PhysX → Newton 0.2%, 2 of 1,027 episodes; the other three 0%). The same-engine
+controls are unchanged. The joint order is not why transfer fails. See "Joints matched by name" in
+[`results/cross_eval.md`](results/cross_eval.md).
+
 ### Training cost (measured)
 
 | Run | Engine | Envs | Time per iteration | Iterations | Wall clock | GPU |

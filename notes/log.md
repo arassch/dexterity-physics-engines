@@ -631,3 +631,24 @@ resolved lists and raises an error if they differ from the training engine's.
 **Step 3, smoke test** (Reorient PhysX → Newton, `--match_order physx`, 16 envs, 32 episodes): all four resolved lists
 equal PhysX's. Result: success 0/32 (95% CI 0–0.107), abnormal_robot 0.969, object_out_of_bound 0.031, within 50 steps.
 32 episodes are too few to conclude anything. The 1,024-episode cells are running.
+
+## 2026-11-16 13:21 UTC: Finding 7, matching the hand joints by name does not rescue transfer (T23, server agent)
+
+Step 4: 8 cells, about 1,024 episodes each, all with `--match_order <training engine>` (rows `lift_matched` and
+`reorient_matched` in `results/cross_eval.csv`; tables in `results/cross_eval.md`).
+
+| Cell | Lift matched (T6 original) | Reorient matched (T13 original) |
+|---|---|---|
+| PhysX → PhysX | 95.9% (95.9%) | 51.5% (51.5%) |
+| PhysX → Newton | **0.2%**, 2/1,027, CI 0.05–0.7 (0.0%); abnormal_robot 98.5% | **0.0%**, 0/1,032 (0.0%); abnormal_robot 95.1% |
+| Newton → Newton | 86.9% (87.0%) | 63.9% (64.9%) |
+| Newton → PhysX | **0.0%**, 0/1,024 (0.0%); time_out 67.1%, abnormal 20.4% | **0.0%**, 0/1,026 (0.0%); time_out 63.3%, abnormal 26.8% |
+
+- The joint-order mismatch was real (T17), but removing it changes nothing measurable. PhysX → Newton still dies
+  through `abnormal_robot` within ~25–30 control steps (Lift: 1,027 episodes in 92 steps with 256 envs; Reorient:
+  1,032 in 118). Newton → PhysX still mostly times out without success.
+- The controls reproduce the originals: identical for PhysX → PhysX, within the 95% intervals for Newton → Newton.
+- Not tested: whether the joint *limits*, *gains* or *default positions* also differ per index between engines. Those
+  come from the asset by name, so they should not depend on the order. T18 compares them per joint, by name.
+- Consequence: the original question stands. The gap is in the dynamics, so T18–T20 go ahead as planned (with
+  name-matched joints).

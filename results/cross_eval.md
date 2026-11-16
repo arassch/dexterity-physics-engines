@@ -63,3 +63,42 @@ Notes:
   exploration noise). Newton → Newton keeps 28.8% `abnormal_robot`, close to its training-time 0.30.
 - The two policies reached different ADR levels in training (PhysX 0.50, Newton 0.85), so they were not trained at
   equal difficulty.
+
+# Joints matched by name (T23)
+
+PhysX and Newton list the 16 Allegro hand joints in different articulation orders: PhysX by level (`index_0,
+middle_0, ring_0, thumb_0, index_1, …`), Newton by finger (`index_0..3, middle_0..3, …`). The arm matches. The action
+term and the `joint_pos`/`joint_vel` observations follow the engine's own order, so in the tables above a policy moved
+to the other engine read and drove permuted hand joints. Here, `evaluate.py --match_order <training engine>` pins the
+action term, `joint_pos`, `joint_vel` and `hand_tips_state_b` to the training engine's names (`preserve_order=True`).
+The run checks the resolved names at startup. The hand-tip bodies already resolved in the same order in both engines.
+Order lists are in `results/joint_order.json`. Settings are as above (final checkpoints, 256 envs, seed 42, Play
+config, deterministic policy). Labels in `cross_eval.csv`: `lift_matched`, `reorient_matched`.
+
+**Lift**
+
+| Trained in → run in | Episodes | Success (95% CI) | abnormal_robot | object_out_of_bound | time_out | Control steps | Original (T6) |
+|---|---|---|---|---|---|---|---|
+| PhysX → PhysX | 1,025 | **95.9%** (94.5–97.0) | 1.1% | 0.5% | 98.4% | 1,440 | 95.9% |
+| PhysX → Newton | 1,027 | **0.2%** (0.05–0.7) | **98.5%** | 1.6% | 0.0% | 92 | 0.0% |
+| Newton → Newton | 1,070 | **86.9%** (84.8–88.8) | 13.6% | 0.4% | 86.1% | 1,440 | 87.0% |
+| Newton → PhysX | 1,024 | **0.0%** (0.0–0.4) | 20.4% | 12.5% | 67.1% | 1,332 | 0.0% |
+
+**Reorient** (4,096-env runs)
+
+| Trained in → run in | Episodes | Success (95% CI) | abnormal_robot | object_out_of_bound | time_out | Control steps | Original (T13) |
+|---|---|---|---|---|---|---|---|
+| PhysX → PhysX | 1,027 | **51.5%** (48.5–54.6) | 1.1% | 2.2% | 96.7% | 1,440 | 51.5% |
+| PhysX → Newton | 1,032 | **0.0%** (0.0–0.4) | **95.1%** | 5.0% | 0.0% | 118 | 0.0% |
+| Newton → Newton | 1,026 | **63.9%** (61.0–66.8) | 30.0% | 0.0% | 70.1% | 1,103 | 64.9% |
+| Newton → PhysX | 1,026 | **0.0%** (0.0–0.4) | 26.8% | 9.9% | 63.3% | 1,238 | 0.0% |
+
+- **Matching the joints by name does not change the result.** The cross-engine cells stay at ~0%: 2 successes in
+  1,027 Lift PhysX → Newton episodes, and 0 in each of the other three. The failure modes are as before. PhysX →
+  Newton still ends almost every episode with `abnormal_robot` within ~25–30 control steps. Newton → PhysX still
+  mostly times out.
+- The controls reproduce T6/T13. For PhysX → PhysX the numbers are identical. Newton → Newton is within the intervals
+  (Lift 86.9 vs 87.0%, Reorient 63.9 vs 64.9%). In the same-engine cells the remap is the identity, so nothing else
+  changed.
+- So the original cross-engine cells were confounded by the joint order, but that confound is not what makes transfer
+  fail. The gap is elsewhere, in the dynamics (robot drives and joints, or contact). That is what T18–T20 test.
