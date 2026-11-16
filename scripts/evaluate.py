@@ -26,6 +26,7 @@ import argparse
 import contextlib
 import csv
 import importlib.metadata as metadata
+import json
 import math
 import os
 import sys
@@ -41,6 +42,7 @@ from packaging import version  # noqa: E402
 from rsl_rl.runners import OnPolicyRunner  # noqa: E402
 
 from isaaclab.envs import DirectMARLEnvCfg, DirectRLEnvCfg, ManagerBasedRLEnvCfg  # noqa: E402
+from isaaclab.managers import SceneEntityCfg  # noqa: E402
 from isaaclab.utils.assets import retrieve_file_path  # noqa: E402
 
 from isaaclab_rl.rsl_rl import RslRlBaseRunnerCfg, RslRlVecEnvWrapper, handle_deprecated_rsl_rl_cfg  # noqa: E402
@@ -65,6 +67,19 @@ parser.add_argument("--train_engine", type=str, default="", help="Engine the che
 parser.add_argument("--eval_engine", type=str, default="", help="Engine used now (label only; the physics= preset decides).")
 parser.add_argument("--csv", type=str, required=True, help="CSV file to append the result row to.")
 parser.add_argument("--max_steps", type=int, default=20000, help="Safety cap on environment steps.")
+parser.add_argument(
+    "--match_order",
+    type=str,
+    default="",
+    choices=["", "physx", "newton"],
+    help="T23: make the action term and the joint/hand-tip observations use this (training) engine's joint and body "
+    "order, matched by name. Orders come from --order_json (written by scripts/dump_order.py).",
+)
+parser.add_argument(
+    "--order_json",
+    type=str,
+    default=os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "results", "joint_order.json"),
+)
 cli_args.add_rsl_rl_args(parser)
 add_launcher_args(parser)
 args_cli, remaining_args = setup_preset_cli(parser)
@@ -80,6 +95,57 @@ def _as_float(x) -> float:
     return float(x)
 
 
+def _apply_match_order(env_cfg, engine: str, order_json: str) -> dict:
+    """Make every policy-facing term that depends on joint or body order follow `engine`'s order, by name.
+
+    Order-dependent terms in the DexSuite Kuka-Allegro state config (checked for T23):
+      actions.action (RelativeJointPositionAction, joint_names [".*"])  -> changed
+      observations.proprio.joint_pos / joint_vel (default asset_cfg = all joints, articulation order) -> changed
+      observations.proprio.hand_tips_state_b (body_names ["palm_link", ".*_tip"]) -> changed
+    Order-independent: policy.actions (last_action, already in action-term order), policy.object_quat_b,
+      policy.target_object_pose_b, proprio.contact (sensor names in a fixed list).
+    """
+    with open(order_json) as f:
+        order = json.load(f)[engine]
+    joints = list(order["joint_names"])
+    tips = list(order["hand_tips_body_names"])
+    env_cfg.actions.action.joint_names = joints
+    env_cfg.actions.action.preserve_order = True
+    proprio = env_cfg.observations.proprio
+    for term in (proprio.joint_pos, proprio.joint_vel):
+        term.params["asset_cfg"] = SceneEntityCfg("robot", joint_names=joints, preserve_order=True)
+    tips_cfg = proprio.hand_tips_state_b.params["body_asset_cfg"]
+    tips_cfg.body_names = tips
+    tips_cfg.preserve_order = True
+    return order
+
+
+def _check_match_order(u_env, order: dict) -> None:
+    """Print the resolved names and fail if they are not the training engine's lists."""
+    robot = u_env.scene["robot"]
+    act_names = list(u_env.action_manager.get_term("action")._joint_names)
+    om = u_env.observation_manager
+    proprio = dict(zip(om._group_obs_term_names["proprio"], om._group_obs_term_cfgs["proprio"]))
+
+    def names(all_names, ids):
+        return list(all_names[ids]) if isinstance(ids, slice) else [all_names[int(i)] for i in ids]
+
+    resolved = {
+        "action": act_names,
+        "joint_pos": names(robot.joint_names, proprio["joint_pos"].params["asset_cfg"].joint_ids),
+        "joint_vel": names(robot.joint_names, proprio["joint_vel"].params["asset_cfg"].joint_ids),
+        "hand_tips_state_b": names(robot.body_names, proprio["hand_tips_state_b"].params["body_asset_cfg"].body_ids),
+    }
+    expected = {"action": order["joint_names"], "joint_pos": order["joint_names"], "joint_vel": order["joint_names"],
+                "hand_tips_state_b": order["hand_tips_body_names"]}
+    print(f"[EVAL] match_order: this engine's articulation joint order: {list(robot.joint_names)}")
+    for key, got in resolved.items():
+        print(f"[EVAL] match_order: {key} resolved to {got}")
+        if got != list(expected[key]):
+            raise RuntimeError(f"match_order: {key} resolved to {got}, expected {list(expected[key])}")
+    print("[EVAL] match_order: all resolved lists equal the training engine's lists")
+
+
 @hydra_task_config(args_cli.task, args_cli.agent)
 def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agent_cfg: RslRlBaseRunnerCfg):
     with launch_simulation(env_cfg, args_cli):
@@ -92,7 +158,13 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
         checkpoint = retrieve_file_path(args_cli.checkpoint)
         env_cfg.log_dir = os.path.dirname(checkpoint)
 
+        order = None
+        if args_cli.match_order:
+            order = _apply_match_order(env_cfg, args_cli.match_order, args_cli.order_json)
+
         env = gym.make(args_cli.task, cfg=env_cfg, render_mode=None)
+        if order is not None:
+            _check_match_order(env.unwrapped, order)
         env = RslRlVecEnvWrapper(env, clip_actions=agent_cfg.clip_actions)
 
         print(f"[EVAL] Loading checkpoint: {checkpoint}")

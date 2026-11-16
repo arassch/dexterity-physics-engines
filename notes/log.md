@@ -604,3 +604,30 @@ cross-engine eval (T6, T13, the T12/T15 clips) gave the policy permuted hand obs
 to the wrong joints. That may explain the 0% transfer by itself, rather than PD, armature or friction. Not verified:
 the test is a cross-eval with the hand joints remapped by name. That would change what `evaluate.py` measures, so
 it is left for a human (STATUS.md). It also matters for T18/T19: per-joint comparisons have to match joints by name.
+
+## 2026-11-16: T23 in progress, joints matched by name (server agent)
+
+**Step 1.** `results/joint_order.json` was written by a new script, `scripts/dump_order.py`, not from the T17 traces,
+because the traces only store joint names, not body names. The script builds the Reorient Play env with 4 envs in each
+engine and reads the managers. The joint names agree with the T17 traces: PhysX orders the hand by level, Newton by
+finger, and arm joints 0–6 match. The **body** order differs in the same way (PhysX: all `*_link_0`, then all
+`*_link_1`, …, then the four `*_biotac_tip`; Newton: `index_link_0..3, index_biotac_tip, middle_…`). But
+`hand_tips_state_b` resolves to the **same** list in both engines: `palm_link, index_biotac_tip, middle_biotac_tip,
+ring_biotac_tip, thumb_biotac_tip`. So in T6/T13 only the 16 hand joints (actions, joint_pos, joint_vel) were
+permuted. The fingertip observations were not.
+
+**Step 2.** New option `evaluate.py --match_order <engine>` (`eval.sh … [episodes] <engine>`, label `<task>_matched`).
+Terms changed:
+- `actions.action`: joint_names = the training engine's 23 names, `preserve_order=True`
+- `proprio.joint_pos` and `proprio.joint_vel`: `asset_cfg` with the same list, `preserve_order=True`
+- `proprio.hand_tips_state_b`: body_names = the training engine's tip list, `preserve_order=True` (no effect in
+  practice, see above)
+
+Order-independent: `policy.actions` (last_action, already in the action term's order), `policy.object_quat_b`,
+`policy.target_object_pose_b`, and `proprio.contact` (its sensors are named in a fixed list). Rewards and events were
+left alone: they don't affect the measurement, or they treat all joints alike. At startup the script prints the
+resolved lists and raises an error if they differ from the training engine's.
+
+**Step 3, smoke test** (Reorient PhysX → Newton, `--match_order physx`, 16 envs, 32 episodes): all four resolved lists
+equal PhysX's. Result: success 0/32 (95% CI 0–0.107), abnormal_robot 0.969, object_out_of_bound 0.031, within 50 steps.
+32 episodes are too few to conclude anything. The 1,024-episode cells are running.

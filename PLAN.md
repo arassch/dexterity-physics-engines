@@ -264,7 +264,7 @@ design, randomisation and distillation (DeepMind, Humanoid, Machenta Robot Learn
 - result: only condition is |joint_vel| > 2× limit; PhysX→Newton 14/16 envs, median step 16 (10–35), hand joints only (index_3, middle_1, index_0 …) at 2.6–5.5× limit; PhysX→PhysX 0/16. Engines order hand joints differently (see `results/abnormal_robot_diagnosis.md`)
 
 ### T23 · Cross-evaluate with joints matched by name (eval only) · before T18
-- status: todo
+- status: running
 - why: T17 found that PhysX and Newton order the 16 hand joints differently (by level vs by finger). The action term
   (`joint_names=[".*"]`) and the joint observations follow each engine's own order, so in T6/T13 a policy moved to
   the other engine most likely read and drove the wrong hand joints. This task measures transfer with that bug removed.
@@ -396,3 +396,4 @@ design, randomisation and distillation (DeepMind, Humanoid, Machenta Robot Learn
 - 2026-11-15 15:45 UTC: T13: all four rows were already in `cross_eval.csv` (no reruns); wrote results/cross_eval.md Reorient section, Finding 3, README; set `done`. Started T14 commands 1 and 2 and T15 command 1 (3 video jobs).
 - 2026-11-15 15:50 UTC: T14 cmd 1 (PhysX, 4 clips) and T15 cmd 2 (Newton→PhysX clip) finished without errors; wrote Reorient sections in `results/videos.md`; set T14 and T15 `done`. No `todo` tasks left; GPU idle.
 - 2026-11-16 13:08 UTC: T22 step 0 passed (after fixing train.sh's override pattern to allow digits); started A (`noactpen`) and B (`nograsp`). T17 done: traces, diagnosis, plots; found that PhysX and Newton order the hand joints differently. T18 not started yet (next wake-up). Resumes used: T22 A 0/2, B 0/2.
+- 2026-11-16 13:12 UTC: T23 started: steps 1–3 done (`scripts/dump_order.py`, `results/joint_order.json`, `evaluate.py --match_order`, smoke test passed the name check). Started the 4 Reorient `reorient_matched` cells; the 4 Lift cells come next. T22 A/B training, ~iter 320/3000.
