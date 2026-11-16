@@ -248,6 +248,8 @@ design, randomisation and distillation (DeepMind, Humanoid, Machenta Robot Learn
 - done so far (Sun 15 Nov, by hand): `scripts/export_episode.sh` for the four Reorient cells (home and away, both
   engines), files in `~/runs/exports/` and in Sara's Dropbox; `scripts/make_usd_animation.py` builds the USD
   animations on her computer. See `unreal/README.md`.
+- Mon 16 Nov 15:34 (Sara): Unreal renders done for PhysX and Newton Reorient (home cells), with the shared camera
+  and key light (`lights.usda`). Videos in Sara's Dropbox (`demo_files/unreal/.../VideoCaptures`).
 - Mon 16 Nov: USD Stage playback works in Unreal (four Reorient animations, plain colour materials, shared
   `lights.usda`). Still to do by hand when the server is up: the two Lift exports,
   `scripts/export_episode.sh lift physx physx checkpoints/lift_physx/model_14999.pt` and
