@@ -327,7 +327,7 @@ design, randomisation and distillation (DeepMind, Humanoid, Machenta Robot Learn
   **28/64 Newton envs reset (steps 15–44), 0/64 PhysX**; RMS before reset 0.067 rad. Finding 8; `results/step_response.md`.
 
 ### T25 · Why does Newton blow up on large commands, robot only? (eval only) · before T19
-- status: todo
+- status: done
 - why: T18 (Finding 8) showed the four parameters T19 would fit are already equal, and small commands track within
   ~0.005 rad, yet replaying the PhysX policy's targets with no cube resets 28/64 Newton robots. So the cause is
   something that only shows up under large, fast, all-finger commands. Leading suspect (planning chat): **velocity
@@ -352,7 +352,9 @@ design, randomisation and distillation (DeepMind, Humanoid, Machenta Robot Learn
 - on done: `results/blowup_diagnosis.md` (short: the table from step 1, what each engine enforces, step 3 and step 4
   reset counts), "Finding 9" in `notes/log.md`, and under "Needs a human" a proposal for what T19 should fit instead
   (for example an emulated velocity limit, or an effort-limit scale). Don't change T19 yourself.
-- result:
+- result: PhysX caps finger velocity at the limit (max 1.01×), Newton doesn't (max 2.0× no cube). Signal c at ADR max:
+  Newton 47/64 `abnormal_robot`, PhysX 0. With the velocity clamp emulated every physics step: 34/64 (only the late
+  resets go away). Finding 9; `results/blowup_diagnosis.md`. Newton source check of `joint_velocity_limit` not done (no read access).
 
 ### T19 · System-ID harness (agent), then the fit (by Sara)
 - status: hold
@@ -447,3 +449,4 @@ design, randomisation and distillation (DeepMind, Humanoid, Machenta Robot Learn
 - 2026-11-16 13:12 UTC: T23 started: steps 1–3 done (`scripts/dump_order.py`, `results/joint_order.json`, `evaluate.py --match_order`, smoke test passed the name check). Started the 4 Reorient `reorient_matched` cells; the 4 Lift cells come next. T22 A/B training, ~iter 320/3000.
 - 2026-11-16 13:22 UTC: T23 done: all 8 matched cells finished (no errors); cross-engine cells still ~0%, controls match T6/T13. Wrote cross_eval.md table, Finding 7, README line. T18 not started (out of time this wake-up).
 - 2026-11-16 13:55 UTC: T18 done: wrote `scripts/step_response.py` + `scripts/analyze_step_response.py` (1 fix: signal-a env→joint map differs by name between engines), smoke tests passed, ran 64 envs on both engines. Small signals match; open-loop policy replay blows up 28/64 Newton envs with no cube (Finding 8). T19 left for next wake-up so the planning chat can see Finding 8 first.
+- 2026-11-16 14:51 UTC: T25 done: committed step 1 (left uncommitted by an earlier wake-up), step 2 code read (PhysX side only), added `--adr max`, `--signals`, `--clamp_vel` and per-env termination terms to `step_response.py`, smoke-tested, ran signal c at ADR max on both engines and the clamped Newton run. Finding 9. T22 A/B still training (0/2 resumes each).

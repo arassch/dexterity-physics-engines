@@ -713,7 +713,7 @@ Analysis: `scripts/analyze_step_response.py` → `results/step_response.md`, `re
   limit handling, self-collision between fingers). Signal (c) is the one the T19 loss should weight.
 - Caveat: at ADR 0 the `gravity_adr` curriculum sets gravity to 0, so the arm was tested without gravity load.
 
-## 2026-11-16 15:00 UTC: T25 steps 1–2, PhysX holds finger velocities at the limit; Newton goes past it (server agent)
+## 2026-11-16 14:46 UTC: T25 steps 1–2, PhysX holds finger velocities at the limit; Newton goes past it (server agent)
 
 Step 1 (`scripts/blowup_analysis.py` → `results/blowup_step1.md`, plots `results/plots/vel_limit_<joint>.png`).
 |joint_vel| / velocity limit, sampled once per control step. Limits read from `robot.data` are the same in both
@@ -747,3 +747,23 @@ Step 2, code (Isaac Lab 3.0 container):
   **Not checked yet:** whether Newton's MuJoCo Warp solver reads `joint_velocity_limit`. The `newton` package lives
   under `/workspace/isaaclab/_isaac_sim/kit/python/.../site-packages`, which this agent's permissions can't read.
   The data says it doesn't clamp.
+
+## 2026-11-16 14:51 UTC: Finding 9, a missing velocity clamp explains part of the Newton blow-up, not all (T25, server agent)
+
+Full write-up: `results/blowup_diagnosis.md`. Signal (c) (PhysX policy targets, open loop, no cube), 64 envs,
+120 steps; `scripts/step_response.py --adr max --signals c [--clamp_vel]`, logs `~/runs/step_response_adrmax_*.log`,
+`~/runs/step_response_clamp_newton.log`.
+
+- Step 1: PhysX caps finger velocities at exactly the limit (max 1.00–1.01 × 6.283 rad/s, 0 of 7,680 samples above
+  1.02). Newton goes past the same limit (1.0% of samples above 1.02, max 2.00). Fingers saturate in effort *more*
+  often in PhysX (50% vs 33%), so the data doesn't point at effort limits.
+- Step 3, gravity on (ADR max, g_z ≈ −7.2 m/s²): **Newton 47/64 envs reset, all `abnormal_robot`, steps 13–40.
+  PhysX 0 `abnormal_robot`** (3 `object_out_of_bound` at steps 100–117, the parked cube falling). Gravity makes
+  Newton worse than T18 at ADR 0 (28/64).
+- Step 4, Newton with every joint's velocity clipped to ±limit before each physics substep (3,776 clips):
+  **34/64 reset** (steps 13–21). The 13 removed are the late ones (steps 22–40); the first resets at 13–21 are
+  unchanged. In those envs the velocity goes from ≤ limit to > 2× limit inside one 1/120 s substep.
+- Meaning: Newton not enforcing the velocity limit explains ~28% of the resets (13/47). The rest come from a large
+  impulse within one substep, which a per-substep clamp can't stop. Untested suspects: the joint position-limit
+  constraint, finger self-collision, the implicit drive at these gains.
+- Gap: whether MuJoCo Warp reads `joint_velocity_limit` wasn't checked in the source (outside what the agent can read).

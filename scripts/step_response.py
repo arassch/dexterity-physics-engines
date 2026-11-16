@@ -54,6 +54,13 @@ parser.add_argument("--sine_hz", type=float, default=1.0)
 parser.add_argument("--trace", type=str, default=os.path.expanduser("~/runs/traces/reorient_physx_in_physx.npz"))
 parser.add_argument("--seed", type=int, default=42)
 parser.add_argument("--out", type=str, required=True)
+parser.add_argument("--adr", choices=("zero", "max"), default="zero",
+                    help="zero: ADR difficulty 0 (T18, gravity off). max: keep the Play config's max difficulty "
+                         "(gravity on, as in the policy evaluations; T25 step 3).")
+parser.add_argument("--signals", type=str, default="abc", help="which signals to run, e.g. 'c'")
+parser.add_argument("--clamp_vel", action="store_true",
+                    help="T25 step 4: before every sim.step call, clip each joint's velocity to +-its velocity limit "
+                         "with write_joint_velocity_to_sim (emulates PhysX's max joint velocity).")
 add_launcher_args(parser)
 args_cli, remaining_args = setup_preset_cli(parser)
 sys.argv = [sys.argv[0]] + remaining_args
@@ -74,10 +81,13 @@ def main(env_cfg: ManagerBasedRLEnvCfg, agent_cfg):
         env_cfg.scene.num_envs = args_cli.num_envs
         env_cfg.seed = args_cli.seed
         env_cfg.sim.device = args_cli.device if args_cli.device is not None else env_cfg.sim.device
-        env_cfg.curriculum.adr.params["init_difficulty"] = 0
+        if args_cli.adr == "zero":
+            env_cfg.curriculum.adr.params["init_difficulty"] = 0
+        adr_d = env_cfg.curriculum.adr.params["init_difficulty"]
         for name in ROBOT_RANDOMISATION_EVENTS:
             setattr(env_cfg.events, name, None)
-        print(f"[STEP] ADR init_difficulty=0; disabled events {ROBOT_RANDOMISATION_EVENTS}; presets: {PRESET_ARGS}")
+        print(f"[STEP] ADR init_difficulty={adr_d}; disabled events {ROBOT_RANDOMISATION_EVENTS}; "
+              f"signals {args_cli.signals}; presets: {PRESET_ARGS}")
 
         env = gym.make(TASK, cfg=env_cfg, render_mode=None)
         u = env.unwrapped
@@ -92,11 +102,23 @@ def main(env_cfg: ManagerBasedRLEnvCfg, agent_cfg):
 
         target = torch.zeros(n, nj, device=dev)
 
+        vlim = _t(robot.data.joint_vel_limits).clone().float()
+        n_clamped = [0, 0]  # [calls, joint-samples clipped]
+
         def apply_fixed_target():
             robot.set_joint_position_target_index(target=target[:, jids] if not isinstance(jids, slice) else target,
                                                   joint_ids=jids)
+            if args_cli.clamp_vel:
+                v = _t(robot.data.joint_vel).clone().float()
+                vc = torch.clamp(v, -vlim, vlim)
+                n_clamped[0] += 1
+                n_clamped[1] += int((vc != v).sum())
+                robot.write_joint_velocity_to_sim_index(velocity=vc)
 
         term.apply_actions = apply_fixed_target
+        print(f"[STEP] clamp_vel={args_cli.clamp_vel}; physics handles decimation: "
+              f"{getattr(u, '_physics_handles_decimation', '?')} (decimation {u.cfg.decimation}), so the clamp runs "
+              f"once per {'control' if getattr(u, '_physics_handles_decimation', False) else 'physics'} step")
         zero_action = torch.zeros(n, u.action_manager.total_action_dim, device=dev)
 
         u.reset()
@@ -115,7 +137,9 @@ def main(env_cfg: ManagerBasedRLEnvCfg, agent_cfg):
 
         def run(signal_fn, tag):
             reset_all()
+            tm = u.termination_manager
             rec = {"joint_pos": [], "joint_vel": [], "target": [], "reset": []}
+            rec.update({f"term_{t}": [] for t in tm.active_terms})
             for k in range(T):
                 target[:] = torch.clamp(signal_fn(k), lo, hi)
                 _, _, terminated, truncated, _ = u.step(zero_action)
@@ -123,11 +147,21 @@ def main(env_cfg: ManagerBasedRLEnvCfg, agent_cfg):
                 rec["joint_vel"].append(_np(robot.data.joint_vel))
                 rec["target"].append(target.cpu().numpy().copy())
                 rec["reset"].append((terminated | truncated).float().cpu().numpy())
+                for t in tm.active_terms:
+                    rec[f"term_{t}"].append(tm.get_term(t).float().cpu().numpy())
             out = {f"{tag}_{k}": np.stack(v) for k, v in rec.items()}
             out[f"{tag}_reset"] = np.maximum.accumulate(out[f"{tag}_reset"], axis=0)  # invalid from first reset on
             bad = int((out[f"{tag}_reset"][-1] > 0).sum())
             err = np.abs(out[f"{tag}_joint_pos"][-1] - out[f"{tag}_target"][-1]).max()
+            # which term ended each env's first episode during the signal
+            first = np.argmax(out[f"{tag}_reset"] > 0, axis=0)
+            hit = out[f"{tag}_reset"][-1] > 0
+            counts = {t: int(sum(out[f"{tag}_term_{t}"][first[e], e] > 0 for e in np.where(hit)[0]))
+                      for t in tm.active_terms}
+            steps = first[hit]
             print(f"[STEP] signal {tag}: {T} steps, envs reset during signal: {bad}/{n}, max |pos-target| at end {err:.4f}")
+            print(f"[STEP] signal {tag}: first-reset term counts {counts}; first-reset steps "
+                  f"{sorted(steps.tolist())}")
             return out
 
         # (a) one joint per env
@@ -137,7 +171,7 @@ def main(env_cfg: ManagerBasedRLEnvCfg, agent_cfg):
         a_sign = torch.where(up, 1.0, -1.0)
         a_target = default.clone()
         a_target[rows, a_joint] += a_sign * args_cli.step_size
-        res = run(lambda k: a_target, "a")
+        res = run(lambda k: a_target, "a") if "a" in args_cli.signals else {}
 
         # (b) finger sine
         finger = torch.tensor([not nm.startswith("iiwa7") for nm in names], device=dev)
@@ -147,7 +181,8 @@ def main(env_cfg: ManagerBasedRLEnvCfg, agent_cfg):
             s = args_cli.sine_amp * np.sin(2 * np.pi * args_cli.sine_hz * (k + 1) * dt)
             return default + s * finger.float()
 
-        res.update(run(sine, "b"))
+        if "b" in args_cli.signals:
+            res.update(run(sine, "b"))
 
         # (c) replay T17 physx->physx targets, by joint name
         tr = np.load(args_cli.trace)
@@ -161,8 +196,19 @@ def main(env_cfg: ManagerBasedRLEnvCfg, agent_cfg):
         tgt = tr["joint_pos_target"][:T][:, src][:, :, perm]  # (T, n, nj) this engine's order
         q0 = tr["joint_pos"][0][src][:, perm]
         c_targets = torch.tensor(tgt - q0[None], device=dev, dtype=torch.float32) + default[None]
-        res.update(run(lambda k: c_targets[k], "c"))
-        res["c_trace_env"] = src
+        if "c" in args_cli.signals:
+            res.update(run(lambda k: c_targets[k], "c"))
+            res["c_trace_env"] = src
+        res["adr_difficulty"] = np.array(adr_d)
+        res["clamp_vel"] = np.array(args_cli.clamp_vel)
+        if args_cli.clamp_vel:
+            print(f"[STEP] clamp calls {n_clamped[0]}, joint-samples clipped {n_clamped[1]}")
+        with contextlib.suppress(Exception):
+            res["gravity_applied"] = np.array(u.sim.get_physics_context().get_gravity())
+        with contextlib.suppress(Exception):
+            g = u.event_manager.get_term_cfg("variable_gravity").params["gravity_distribution_params"]
+            res["gravity_distribution_params"] = np.array(g, dtype=np.float32)
+            print(f"[STEP] variable_gravity distribution after reset: {g}")
 
         res["a_joint"] = a_joint.cpu().numpy()
         res["a_sign"] = a_sign.cpu().numpy()
