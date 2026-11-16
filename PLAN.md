@@ -263,11 +263,42 @@ design, randomisation and distillation (DeepMind, Humanoid, Machenta Robot Learn
   joints, target vs actual position over the first 120 steps, both engines on one plot.
 - result: only condition is |joint_vel| > 2× limit; PhysX→Newton 14/16 envs, median step 16 (10–35), hand joints only (index_3, middle_1, index_0 …) at 2.6–5.5× limit; PhysX→PhysX 0/16. Engines order hand joints differently (see `results/abnormal_robot_diagnosis.md`)
 
+### T23 · Cross-evaluate with joints matched by name (eval only) · before T18
+- status: todo
+- why: T17 found that PhysX and Newton order the 16 hand joints differently (by level vs by finger). The action term
+  (`joint_names=[".*"]`) and the joint observations follow each engine's own order, so in T6/T13 a policy moved to
+  the other engine most likely read and drove the wrong hand joints. This task measures transfer with that bug removed.
+  Everything after it (T18–T20) depends on the answer.
+- requires: the GPU job limits above (eval jobs; may run alongside T22's two training runs).
+- step 1: write `results/joint_order.json` from the T17 traces (`scripts/joint_order.py`): for each engine, the 23 joint
+  names and the robot body names in articulation order, plus the bodies the `hand_tips_state_b` observation uses
+  (`palm_link`, `.*_tip`) in the order each engine resolves them.
+- step 2: add `--match_order <engine>` to `scripts/evaluate.py` (and pass it through `scripts/eval.sh` as an optional
+  last argument). It makes the run use the *training* engine's order by name, after the config is loaded and before
+  the env is built, without changing anything else it measures:
+  - action term: `env_cfg.actions.action.joint_names = <training engine's 23 names>`, `preserve_order = True`
+  - observations `proprio.joint_pos` and `proprio.joint_vel`: `asset_cfg = SceneEntityCfg("robot", joint_names=<same
+    list>, preserve_order=True)`
+  - `proprio.hand_tips_state_b`: `body_asset_cfg.body_names = <training engine's tip-body order>`, `preserve_order=True`
+  - check every other term that takes a joint or body list (observations, actions; rewards don't matter at eval) and
+    list in `notes/log.md` which ones you changed and which were order-independent.
+  - at startup print the resolved joint names of the action term and of `joint_pos`, and the hand-tip body names, and
+    fail if they don't equal the training engine's lists.
+- step 3: smoke test (16 envs, 32 episodes): physx→newton with `--match_order physx`; check the printed lists.
+- step 4: 1,024 episodes each, label `reorient_matched` and `lift_matched`, all with `--match_order <train engine>`:
+  Reorient physx→newton, newton→physx, and the controls physx→physx, newton→newton (these must match T13 within
+  their intervals, or something else changed); the same four for Lift (T1/T2 final checkpoints).
+- on done: add a "Joints matched by name" table to `results/cross_eval.md` next to the original ones, "Finding 7" in
+  `notes/log.md` (with the numbers), and a line in the README's cross-evaluation section saying the original
+  cross-engine cells were confounded by the joint order. If the away cells are no longer ~0%, say so plainly in
+  STATUS.md under "Needs a human": the planning chat will revise T18–T20.
+- result:
+
 ### T18 · Robot-only step-response test (eval only, no policy)
 - status: todo
 - why: this is our "real-world dataset". Treat PhysX as reality and record how each joint responds to the same command
   in both engines, with no cube involved.
-- requires: T17 `done`. About 30 min of GPU.
+- requires: T17 and T23 `done`. About 30 min of GPU. Compare and replay joints **by name** (`results/joint_order.json`), never by index.
 - write `scripts/step_response.py`: Reorient env (Play config, `presets=cube`), 64 envs, ADR at 0 (no randomisation) so
   the robot parameters are the nominal ones. Move the cube far from the hand by resetting it out of reach (if that isn't
   possible, keep the hand far from the table). From the default pose, for each of these signals in turn, send open-loop
@@ -307,6 +338,7 @@ design, randomisation and distillation (DeepMind, Humanoid, Machenta Robot Learn
 - status: todo
 - why: the headline test. Does the PhysX policy work in Newton once Newton's robot matches PhysX, with no retraining?
 - requires: T19 `done` (set by Sara after her fit).
+- always run with `--match_order <train engine>` (T23).
 - add a `--robot_params results/sysid_robot.json` option to `scripts/evaluate.py` that applies the fitted parameters after
   reset (the same calls as T19). Don't change anything it measures.
 - run 1,024 episodes each: Reorient PhysX policy in fitted Newton, Lift PhysX policy in fitted Newton, and Newton → Newton
