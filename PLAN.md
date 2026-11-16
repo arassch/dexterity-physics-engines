@@ -43,6 +43,10 @@ design, randomisation and distillation (DeepMind, Humanoid, Machenta Robot Learn
 
 ## Answers from humans
 
+- 2026-11-16 13:46 (Sara): contacts come second. Most PhysX → Newton blow-ups happen before the hand reaches the cube
+  (notes/log.md, 13:45), so T18–T20 (drives only) go first. A contact-response test (press, slide, hold; a possible
+  T24) is decided at the T21 gate, depending on how much T20 recovers. Don't start it before then.
+
 - 2026-11-15 16:10: New phase. The finding that matters: in both tasks, PhysX policies hit `abnormal_robot` in Newton
   within ~23–35 control steps, before real contact with the cube. So the gap is probably in the **robot** (PD drives,
   armature, joint friction, limits, solver), not the cube. T17–T20 test that using evaluation only, with no training.
