@@ -236,6 +236,10 @@ design, randomisation and distillation (DeepMind, Humanoid, Machenta Robot Learn
 - done so far (Sun 15 Nov, by hand): `scripts/export_episode.sh` for the four Reorient cells (home and away, both
   engines), files in `~/runs/exports/` and in Sara's Dropbox; `scripts/make_usd_animation.py` builds the USD
   animations on her computer. See `unreal/README.md`.
+- Mon 16 Nov: USD Stage playback works in Unreal (four Reorient animations, plain colour materials, shared
+  `lights.usda`). Still to do by hand when the server is up: the two Lift exports,
+  `scripts/export_episode.sh lift physx physx checkpoints/lift_physx/model_14999.pt` and
+  `scripts/export_episode.sh lift newton newton checkpoints/lift_newton/model_14999.pt`.
 - the server agent does nothing for T16.
 - result:
 

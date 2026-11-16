@@ -37,7 +37,11 @@ python3 make_usd_animation.py reorient_newton_in_newton.json reorient_physx_in_p
     --usd_from reorient_physx_in_physx.json --env 0
 ```
 
-Keep the `.usda` next to the `.usd` it sublayers. In Unreal: enable the **USD Importer** plugin, add a **USD Stage**
+Keep the `.usda` next to the `.usd` it sublayers. Shared edits (lights, camera) go in their own layer, e.g.
+`lights.usda`, added to every animation with `--layer lights.usda`; in Unreal, make that layer the edit target in the
+USD Stage Editor's Layers panel before tweaking, so rebuilding an animation never overwrites the edits. The script
+replaces the scene's Omniverse materials (which Unreal can't load) with plain colours and turns off instancing
+under the robot so its meshes can take them; `--keep_materials` skips that. In Unreal: enable the **USD Importer** plugin, add a **USD Stage**
 actor, set its Root Layer to the `.usda`, and play the stage's Level Sequence (60 fps). Each robot link is animated as
 a rigid transform; a translucent green cube marks the target. Tested on a synthetic scene only so far; the first real
 run will show whether every link prim was matched (the export log prints `matched N/M body prims`).
