@@ -855,3 +855,33 @@ So the bug is in the clamp patch, not the harness. PLAN.md's fallback is to clam
   **abnormal_robot 16/64**). PhysX reference resets: a 3, b 3, c 0. That is close to T25b's best row (17/64).
   Started the same check at 4 and 2 substeps for the substep choice, and wrote `scripts/train_clamped.py` for the speed
   test (it wraps rsl_rl's `train_rsl_rl.py` and adds the same clamp plus `--num_substeps`).
+
+## 2026-11-16 17:00 UTC: T19 fixed corrections chosen: per-physics-step clamp, 8 substeps; harness ready (server agent)
+
+- **Clamp: per physics step** (not per solver substep, which crashed CUDA twice; see 16:35).
+- **num_substeps = 8.** Signal-c abnormal_robot out of 64 envs: 2 substeps 26, 4 substeps 19, 8 substeps 16. The rule
+  allows at most 2 over the 8-substep count, so 4 (+3) fails. Lift 512 envs, steady-state s/iter with the clamp:
+  0.98 (2), 1.11 (4), 1.31 (8). Choosing 8 costs ~18% per iteration against 4. Table in `results/sysid_settings.md`.
+- `scripts/train_clamped.py` smoke test (64 envs, 3 iterations, 2 substeps) and all three 50-iteration speed runs
+  finished without errors (`[CLAMP] per-physics-step velocity clamp on 16 finger joints x 512 envs`).
+- T19 harness part is done: set `blocked` for Sara's fit.
+
+## Finding 6 (T22): without the smoothness penalties, Lift is not learned in 3,000 iterations; without the grasp rewards it is learned faster (server agent, from the logs)
+
+Numbers in `results/reward_experiment.md`. Deterministic evals, ~1,024 episodes each:
+- **A, no `action_l2` / `action_rate_l2`:** 0.0% in PhysX and in Newton. Training-time success was 0.00 for all
+  3,000 iterations, and ADR stayed at 0.0002. Instead of lifting, it collects the shaping rewards: at the last
+  iteration, fingers_to_object 0.54, good_finger_contact 0.33 and contact_count 0.57 per episode, but
+  position_tracking only 0.015 (B: 0.84) and object position error 0.66 m (B: 0.19 m). 11% of episodes end with the
+  cube out of bounds (B: 1.6%), so it pushes or knocks the cube rather than holding it. **Its action std grew instead
+  of shrinking:** 1.00 at iteration 0, 1.20 at 500, 1.42 at 1,500, 1.69 at 2,999 (entropy loss 44.2; B 25.3).
+  The action penalties were the only terms that charge for large or jerky actions. Without them, PPO's entropy bonus
+  keeps widening the noise, and a policy that noisy never holds the cube long enough to get the lift and success
+  rewards. This is an interpretation from the logs; the clip should show whether the hand flails.
+- **B, no `good_finger_contact` / `contact_count`:** 90.2% in PhysX, while the T1 baseline with *all* rewards was only
+  7.9% at the same iteration count (3,000). So at 3,000 iterations the contact rewards slowed learning down. One
+  possible reason is that they pay for touching, so the policy can earn reward by holding contact without lifting.
+  B's action std fell from 1.00 to 0.38 by iteration 500.
+- **Transfer:** A in Newton hits abnormal_robot in 98.5% of episodes (baseline 97.1%), so with these numbers "less
+  smooth transfers worse" can't be told apart, because both are already ~0% in Newton.
+- Clips: `~/runs/videos/lift_physx_{noactpen,nograsp,baseline3000}/` (server). Sara: please add what you see.

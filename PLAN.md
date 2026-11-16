@@ -389,7 +389,7 @@ design, randomisation and distillation (DeepMind, Humanoid, Machenta Robot Learn
   Finding 10; `results/blowup_diagnosis.md` T25b section, `results/t25b_tests.md`.
 
 ### T19 · System-ID: harness (agent), then the fit (by Sara)
-- status: running
+- status: blocked
 - rewritten Mon 16 Nov 15:55 from T25b (Finding 10). PhysX is the "real robot"; only Newton changes.
 - why: make Newton's robot respond like PhysX's to the policy's fast finger commands, so that a policy trained in
   Newton works in PhysX (T21). T25b: MuJoCo Warp ignores joint velocity limits, and the coarse step lets fingers
@@ -422,7 +422,10 @@ design, randomisation and distillation (DeepMind, Humanoid, Machenta Robot Learn
   penalty for resets) and a CMA-ES loop over `rollout()`, capped at 2 h of GPU. Outputs `results/sysid_robot.json`
   (best params, loss per generation), `results/plots/sysid_loss.png`, and step-response plots for PhysX, default Newton
   and fitted Newton. Then "Finding 11" in `notes/log.md`. Sara sets T19 `done`.
-- result:
+- result: harness ready (`scripts/sysid_harness.py`). Fixed corrections: per-physics-step finger velocity clamp (the
+  substep hook crashed), num_substeps 8 (signal-c abnormal_robot 26/19/16 of 64 at 2/4/8; 1.31 s/iter vs 1.11 at 4),
+  see `results/sysid_settings.md`. `--check` at 8: RMS a 0.027, b 0.022, c 0.100 rad, c abnormal_robot 16/64.
+  Training wrapper `scripts/train_clamped.py`. Waiting for Sara's fit.
 
 ### T20 · Cross-evaluate with the fitted robot (eval only)
 - status: todo
@@ -448,7 +451,7 @@ design, randomisation and distillation (DeepMind, Humanoid, Machenta Robot Learn
   decision.
 
 ### T22 · Reward experiment · Lift · PhysX (two variants, 3,000 iterations)
-- status: running
+- status: done
 - run_folder: check `2026-11-16_12-44-30`; A `2026-11-16_12-45-44` (log `~/runs/lift_physx_3000_noactpen.log`); B `2026-11-16_12-46-44` (log `~/runs/lift_physx_3000_nograsp.log`)
 - why: show how rewards shape behaviour (reward design is the RL skill every robot-learning role asks about), and
   test whether a less smooth policy transfers to Newton even worse. This task changes reward weights, but only through
@@ -469,7 +472,7 @@ design, randomisation and distillation (DeepMind, Humanoid, Machenta Robot Learn
 - write `results/reward_experiment.md`: one table (variant, success, abnormal_robot, object_out_of_bound, time_out,
   and the mean |action| and mean |action rate| if the logs give them). Plus "Finding 6" in `notes/log.md`, describing
   what each variant does instead, from the logs. Sara watches the clips and adds her description.
-- result: B done (iter 2999, training success 0.93, abnormal_robot 0.017, ADR 0.99; `checkpoints/lift_physx_nograsp/model_2999.pt`). Evals: B in PhysX 90.2% (1,025 eps); baseline in Newton 0.0% (1,026 eps). A still training.
+- result: A (`noactpen`, model_2999) training success 0.00 throughout, ADR 0.0002; evals PhysX 0.0%, Newton 0.0% (98.5% abnormal_robot). B (`nograsp`, model_2999) training 0.93, ADR 0.99; PhysX 90.2%. Baseline model_3000: PhysX 7.9%, Newton 0.0%. Clips in `~/runs/videos/lift_physx_{noactpen,nograsp,baseline3000}/`. `results/reward_experiment.md`, Finding 6. Sara's clip description still to add.
 
 ## Agent notes
 
@@ -497,3 +500,4 @@ design, randomisation and distillation (DeepMind, Humanoid, Machenta Robot Learn
 - 2026-11-16 16:20 UTC: T19 started: recorded PhysX reference a+b+c at ADR max (`~/runs/step_response/t19_ref_physx.npz`), wrote `scripts/sysid_harness.py` (clamp once per solver substep via a wrapped `NewtonManager._step_solver`), 8-env smoke check launched, not yet verified. T22 A/B still training (0/2 resumes each).
 - 2026-11-16 16:35 UTC: T22 B finished normally (model_2999, 0 resumes), backed up; evals started: B in PhysX (running), T1 baseline in Newton (done, 0.0%). T19: per-substep clamp smoke failed again after a fix (keep the pre-clamp graph alive), so 2/2 attempts used; `--no_clamp` smoke passes. Next: the per-physics-step fallback from T19 step 1.
 - 2026-11-16 16:31 UTC: T22 B-in-PhysX eval done (90.2%); started the baseline `model_3000.pt` in PhysX eval. T19: switched `sysid_harness.py` to the per-physics-step clamp (PLAN fallback); 8-env smoke passed (c: 1/8 abnormal_robot vs 3/8 unclamped); started the 64-env `--check`.
+- 2026-11-16 17:00 UTC: T22 A finished normally (0 resumes), backed up (by the previous wake-up, committed now); evals A PhysX/Newton 0.0%; recorded the 3 clips (with `--out` names); wrote `results/reward_experiment.md` + Finding 6; T22 `done`. T19: 64-env checks at 8/4/2 substeps, wrote `scripts/train_clamped.py` (smoke OK), speed runs 2/4/8; chose 8 substeps (`results/sysid_settings.md`); T19 `blocked` for Sara's fit.

@@ -1,34 +1,36 @@
 # Status
-Updated: 2026-11-16 16:31 UTC by the server agent (wake-up: state changed, T22 B-in-PhysX eval finished)
+Updated: 2026-11-16 17:00 UTC by the server agent (wake-up: manual --once)
 
-Instance hours since 15 Nov 16:00 UTC: **≈ 4.2 h ≈ $15.3** (estimate; the previous STATUS stamp of 16:37 was a
-mistake, since it was earlier than now).
+Instance hours since 15 Nov 16:00 UTC: **≈ 4.7 h ≈ $17** (estimate: the previous 4.2 h at 16:31 plus 0.5 h).
 
 ## GPU jobs
 | Task | Engine | Iteration | Success | abnormal_robot | ADR | ETA |
 |---|---|---|---|---|---|---|
-| T22 A `noactpen` | PhysX (Lift) | 2,966 / 3,000 | 0.0 | 0.012 | 0.0 | ~3 min |
-| T22 eval: baseline `model_3000.pt` in PhysX | PhysX | eval, 1,024 eps | – | – | – | minutes |
-| T19 harness `--check`, 64 envs | Newton | rollout a/b/c | – | – | – | minutes |
+| none | – | – | – | – | – | – |
 
-GPU ~5–10 GB / 46 GB. Training success rates include exploration noise. A's success has been 0.0 throughout.
+The GPU is idle and no `todo` task can start: T20 needs T19 `done` (Sara's fit), T21 is blocked, and T16 is run by
+hand. `idle_stop.sh` will stop the instance after 20 idle minutes.
 
 ## Since last update
-- T22 B (`nograsp`) in PhysX: **90.2%** (1,025 eps, CI 88.3–91.9%), abnormal_robot 0.8%. Row committed to
-  `results/cross_eval.csv`. Its log is kept as `~/runs/eval_lift_nograsp_in_physx.log`.
-- Started the T1 baseline `model_3000.pt` in PhysX eval (`~/runs/eval_lift_physx_in_physx.log`).
-- **T19:** switched `scripts/sysid_harness.py` to PLAN.md's fallback: finger velocities are clamped once per physics
-  step (`--clamp_mode physics_step`, the new default). The 8-env smoke test **passes**: signal c gives 1/8
-  abnormal_robot (3/8 without the clamp); RMS a 0.027, b 0.022, c 0.100 rad. The 64-env `--check` is running
-  (`~/runs/t19_harness_check64.log`).
-- Next wake-up: back up A when it finishes, then run A's evals (PhysX and Newton) and the clips. Read the 64-env check.
-  Then T19's speed test (2/4/8 substeps), which needs the `scripts/train_clamped.py` wrapper.
+- **T22 done.** A (`noactpen`) finished normally at iteration 2999 (13,652 s, 0 resumes): training success 0.00
+  throughout, ADR 0.0002, abnormal_robot 0.017. Its action std grew from 1.00 to 1.69. The previous wake-up backed
+  it up and ran its evals but left them uncommitted; they are committed now. Evals: A in PhysX 0.0%, A in Newton
+  0.0% (98.5% abnormal_robot). Baseline `model_3000`: PhysX 7.9%, Newton 0.0%. B: PhysX 90.2%. Recorded the 3 clips
+  (`~/runs/videos/lift_physx_{noactpen,nograsp,baseline3000}/`). I used `--out` names so A and B don't overwrite
+  each other. Wrote `results/reward_experiment.md` and Finding 6.
+- **T19 harness ready.** 64-env `--check`, signal-c abnormal_robot: 16/64 at 8 substeps, 19/64 at 4, 26/64 at 2.
+  Wrote `scripts/train_clamped.py` (smoke test OK). Speed, Lift 512 envs, steady state: 0.98 / 1.11 / 1.31 s/iter
+  at 2 / 4 / 8 substeps. The rule picks **8** (`results/sysid_settings.md`). T19 set `blocked` for Sara's fit.
 
 ## Needs a human
-- T19: the per-solver-substep clamp crashed CUDA twice, so the harness uses the per-physics-step fallback (smoke test
-  OK). If you want the substep hook debugged instead, say so in PLAN.md.
-- T19 speed test: I'll write `scripts/train_clamped.py` (installs the same per-physics-step clamp, then runs train.py
-  unchanged) unless told otherwise.
+- **T19 harness ready for Sara.** `scripts/sysid_harness.py` (`run_with_harness`, `rollout`, `default_params`,
+  `param_bounds`, `--check`). Fixed corrections: per-physics-step clamp and 8 substeps. Next is your
+  `scripts/sysid_fit.py`.
+- Surprising: T22 A (no smoothness penalties) never succeeded once in 3,000 iterations, while B (no grasp rewards,
+  90.2%) beat the full-reward baseline at the same iteration (7.9%). Details in Finding 6.
+- The 4-vs-8 substep call is close: 19 vs 16 blow-ups, one seed, 64 envs, and 4 substeps is ~18% faster. Change it
+  in PLAN.md if you prefer 4.
+- Sara: watch the 3 T22 clips and add your description to `results/reward_experiment.md` / Finding 6.
 - At ADR max, `variable_gravity` gives g_z ≈ −7.1 to −7.6, not −9.81. FYI.
-- Sara: "What I learned" notes for T17, T23, T18, T25 and T25b.
+- Sara: "What I learned" notes for T17, T23, T18, T25, T25b (and now T19, T22).
 - Still open from before: watching the 10 Reorient clips.
