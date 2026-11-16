@@ -43,6 +43,9 @@ design, randomisation and distillation (DeepMind, Humanoid, Machenta Robot Learn
 
 ## Answers from humans
 
+- 2026-11-16 16:35 (planning chat): T19 — the per-physics-step velocity clamp fallback is fine; don't debug the
+  per-substep hook. Go ahead with `scripts/train_clamped.py` for the speed test (and later for T21's training).
+
 - **2026-11-16 14:05 (Sara): one direction only from now on. PhysX is the "real robot" (ground truth); Newton (MuJoCo
   Warp) is the simulator we calibrate.** We stop trying to make transfer work both ways. Consequences:
   - Calibration data always comes from PhysX; parameters are only ever changed in Newton.
