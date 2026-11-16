@@ -43,6 +43,14 @@ design, randomisation and distillation (DeepMind, Humanoid, Machenta Robot Learn
 
 ## Answers from humans
 
+- **2026-11-16 14:05 (Sara): one direction only from now on. PhysX is the "real robot" (ground truth); Newton (MuJoCo
+  Warp) is the simulator we calibrate.** We stop trying to make transfer work both ways. Consequences:
+  - Calibration data always comes from PhysX; parameters are only ever changed in Newton.
+  - The experiment that matters is the sim-to-real one: **train in (calibrated) Newton, deploy in PhysX**. Report
+    Newton → PhysX as the main transfer number; PhysX → Newton is a fidelity check of the calibrated simulator (a
+    policy that works on the "real" robot should also work in a good simulator).
+  - T25 diagnoses where Newton's robot differs from PhysX's, as before; read its results with PhysX as the reference.
+
 - 2026-11-16 13:46 (Sara): contacts come second. Most PhysX → Newton blow-ups happen before the hand reaches the cube
   (notes/log.md, 13:45), so T18–T20 (drives only) go first. A contact-response test (press, slide, hold; a possible
   T24) is decided at the T21 gate, depending on how much T20 recovers. Don't start it before then.
@@ -373,7 +381,9 @@ design, randomisation and distillation (DeepMind, Humanoid, Machenta Robot Learn
 
 ### T20 · Cross-evaluate with the fitted robot (eval only)
 - status: todo
-- why: the headline test. Does the PhysX policy work in Newton once Newton's robot matches PhysX, with no retraining?
+- why: fidelity check of the calibrated simulator (PhysX is the "real robot", see Answers from humans 16 Nov 14:05).
+  Does a policy that works on the real robot also work in the calibrated Newton, with no retraining? Also run the
+  Newton-trained policies in PhysX with nothing changed, as the uncalibrated sim-to-real baseline for T21.
 - requires: T19 `done` (set by Sara after her fit).
 - always run with `--match_order <train engine>` (T23).
 - add a `--robot_params results/sysid_robot.json` option to `scripts/evaluate.py` that applies the fitted parameters after
@@ -387,9 +397,10 @@ design, randomisation and distillation (DeepMind, Humanoid, Machenta Robot Learn
 ### T21 · Gate: stop and ask
 - status: blocked
 - after T20, write under "Needs a human" in STATUS.md: the T20 numbers, hours and $ used since 15 Nov, and the hours left.
-  The planning chat then decides the next runs. The default is **teacher–student on Lift** (the RL skill the roles ask
-  for), plus the robustness heatmap (evaluation only). Retraining Newton with fitted parameters comes only if T20 shows a
-  real gain and the budget allows. Don't start any training before that decision.
+  The planning chat then decides the next runs. The default is now the **sim-to-real run on Lift: train in calibrated
+  Newton (512 envs, ~8,000 iterations), then evaluate in PhysX**, compared with the uncalibrated Newton policy in PhysX.
+  Teacher–student on Lift and the robustness heatmap come after, budget allowing. Don't start any training before that
+  decision.
 
 ### T22 · Reward experiment · Lift · PhysX (two variants, 3,000 iterations)
 - status: running
