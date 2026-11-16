@@ -652,3 +652,29 @@ Step 4: 8 cells, about 1,024 episodes each, all with `--match_order <training en
   come from the asset by name, so they should not depend on the order. T18 compares them per joint, by name.
 - Consequence: the original question stands. The gap is in the dynamics, so T18–T20 go ahead as planned (with
   name-matched joints).
+
+## 2026-11-16 13:30 UTC · What I learned: T17 (Sara)
+
+From reading `scripts/trace_episode.py` and `scripts/plot_traces.py`, and the T17 results.
+
+- **Catching the state at failure.** `env.step()` resets finished envs before it returns, so reading the robot state
+  afterwards shows the new episode, not the failure. `trace_episode.py` wraps the termination manager's `compute()`
+  to snapshot the joints at the moment the termination is checked, before the reset.
+- **Saturated drives.** `computed_torque` is what the PD drive asks for; `applied_torque` is what is delivered after
+  clipping to the effort limit. If they differ, the drive is saturated. At the abnormal_robot step the fingers were at
+  ~0.5 N·m, the effort limit: maxed out, yet still moving too fast.
+- **Two hypotheses for the blow-up in Newton.**
+  1. The hand joints are ordered differently in each engine, so the policy drove the wrong fingers (T23 tests this).
+  2. The actions are relative (target = position + 0.1·action), so targets are always close; what's wrong is the speed.
+     With motors saturated and only ~0.15 rad of error, fingers move 2.6–5.5× over the limit, which points to
+     Newton's drives/contacts making the light finger links much snappier than PhysX's. The matched-order smoke test
+     (0/32, 97% abnormal) still failing supports this one.
+- **Joint order.** The trained model expects a certain order of inputs and outputs, so they can't be shuffled: entry 8
+  means "index_joint_1" only because it did in training. The robot file doesn't fix the order; each engine's importer
+  walks the joint tree its own way (PhysX by level, Newton by finger), so the same asset gives two orders, silently.
+  The same trap appears with real-robot drivers, logged datasets and trajectory replay. Map joints by name, never by
+  index.
+- **What I'd do first next time** a policy fails in a new simulator (or on a robot): check the joint order; run a few
+  episodes of the trained model and look for velocity blow-ups (joints over their limit); and study how that
+  simulator applies its constraints (soft or hard contacts, drive model), since that tells you how it will compare
+  to the one the model was trained in.
