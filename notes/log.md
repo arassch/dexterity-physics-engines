@@ -885,3 +885,25 @@ Numbers in `results/reward_experiment.md`. Deterministic evals, ~1,024 episodes 
 - **Transfer:** A in Newton hits abnormal_robot in 98.5% of episodes (baseline 97.1%), so with these numbers "less
   smooth transfers worse" can't be told apart, because both are already ~0% in Newton.
 - Clips: `~/runs/videos/lift_physx_{noactpen,nograsp,baseline3000}/` (server). Sara: please add what you see.
+
+## 2026-11-16 18:20 UTC · Design of the T19 fit (Sara, with the planning chat)
+
+Goal: calibrate Newton (the simulator) so its fingers respond like PhysX's (the "real hand"), then train in the
+calibrated Newton. The fit is open-loop: no policy runs. Both engines get the same recorded joint-target sequences;
+the targets are only the shared input, and the loss compares Newton's motion with **PhysX's motion**, not with the
+targets (PhysX's own 37–41% finger overshoot is part of what Newton should copy).
+
+- **Compared:** the 16 finger joints (arm error reported separately as a sanity check), position and velocity, each
+  normalised (position by the motion size, e.g. 0.3 rad; velocity by the 6.28 rad/s limit), over the steps before any
+  reset. Robots whose PhysX reference reset are left out.
+- **Signals:** (a) steps, (b) finger sine, (c) replayed policy targets, weighted 1 : 1 : 3. (c) is the goal; (a) and
+  (b) anchor the basic response so the fit can't "fix" blow-ups with a sluggish hand (high damping/armature, low effort).
+- **Blow-up penalty:** about twice the worst tracking error of a surviving robot, larger the earlier the blow-up.
+- **Search:** grid instead of CMA-ES (only 3 parameters): log-spaced 6 × 6 × 6 over armature, damping scale and
+  effort scale, then a finer grid around the best region. Each candidate is scored on all 64 references: run the
+  harness with num_envs = 64 × K and give each block of 64 consecutive envs the same parameters (env i uses reference
+  i mod 64, so one candidate per env would compare candidates on different references).
+- **Recorded per grid point, separately:** blow-ups out of 64, and each signal's error; the choice is made from the
+  table (e.g. fewest blow-ups, then best tracking), with a blow-ups-vs-tracking plot.
+- **Checks before believing it:** step-response rise time and overshoot of fitted Newton vs PhysX; blow-ups on
+  held-out trace episodes (fit on ~10 of the 15, test on the rest); then T20, the PhysX policy in fitted Newton.

@@ -419,7 +419,9 @@ design, randomisation and distillation (DeepMind, Humanoid, Machenta Robot Learn
   Then set this task `blocked` and write "T19 harness ready for Sara" under "Needs a human". Don't write a loss or an
   optimiser.
 - **Sara's part (by hand):** `scripts/sysid_fit.py`: her loss (how far Newton's trajectories are from PhysX's, plus a
-  penalty for resets) and a CMA-ES loop over `rollout()`, capped at 2 h of GPU. Outputs `results/sysid_robot.json`
+  penalty for resets) and a **grid search, then a finer grid** over `rollout()` (her design, notes/log.md 16 Nov 18:20;
+  replaces CMA-ES: only 3 parameters), each candidate scored on all 64 references (num_envs = 64 × K), capped at 2 h
+  of GPU. Outputs `results/sysid_robot.json`
   (best params, loss per generation), `results/plots/sysid_loss.png`, and step-response plots for PhysX, default Newton
   and fitted Newton. Then "Finding 11" in `notes/log.md`. Sara sets T19 `done`.
 - result: harness ready (`scripts/sysid_harness.py`). Fixed corrections: per-physics-step finger velocity clamp (the
