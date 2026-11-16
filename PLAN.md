@@ -358,6 +358,30 @@ design, randomisation and distillation (DeepMind, Humanoid, Machenta Robot Learn
   Newton 47/64 `abnormal_robot`, PhysX 0. With the velocity clamp emulated every physics step: 34/64 (only the late
   resets go away). Finding 9; `results/blowup_diagnosis.md`. Newton source check of `joint_velocity_limit` not done (no read access).
 
+### T25b · Where does the one-substep kick come from? (eval only) · before T19
+- status: todo
+- why: T25 (Finding 9) showed a per-substep velocity clamp removes only 13/47 Newton blow-ups; the rest jump past 2×
+  the limit within one 1/120 s substep. That is > 1,500 rad/s², far more than a 0.5 N·m drive can give a joint with
+  0.01 kg·m² armature (~50 rad/s²), so the kick most likely comes from a **constraint force**, not the drives.
+- requires: the GPU job limits above (eval only; may run alongside T22). Use `scripts/step_response.py`, signal (c),
+  64 envs, `--adr max`, both engines, with and without `--clamp_vel` where it says so.
+- test 1, self-collision: rerun with collisions between the robot's own links (finger–finger, finger–palm) turned off
+  in both engines, if Isaac Lab exposes it for each engine (articulation `enabled_self_collisions` or the engine's
+  collision filter). Count `abnormal_robot` resets.
+- test 2, joint limits: at each Newton reset step, record which joints are within 0.02 rad of their position limits
+  (soft or hard), and their velocity. Compare with the same steps in PhysX. If most blow-ups coincide with a joint at
+  its limit, that's MuJoCo's soft joint-limit constraint (its solref/solimp).
+- test 3, time step: rerun Newton with more substeps (e.g. 4 and 8 instead of 2) at the same control rate, with and
+  without `--clamp_vel`. If resets fall sharply, the integrator is too coarse for these links.
+- test 4 (no GPU), finish T25 step 2: read the `newton` package source (now readable: the agent may read, never edit,
+  files under Isaac Sim's `kit/python`) and quote with file:line whether the MuJoCo Warp solver uses
+  `joint_velocity_limit`, how joint limits and their softness are passed (solref/solimp or equivalent), and how
+  armature and effort limits reach MuJoCo.
+- on done: `results/blowup_diagnosis.md` gets a "T25b" section (a table: test, setting, resets out of 64), "Finding 10"
+  in `notes/log.md`, and under "Needs a human" a concrete proposal for T19's parameters (what to fit, with ranges).
+  Don't change T19 yourself.
+- result:
+
 ### T19 · System-ID harness (agent), then the fit (by Sara)
 - status: hold
 - on hold (Mon 16 Nov 14:00): T18 showed the four parameters below are already equal in both engines. Wait for T25;

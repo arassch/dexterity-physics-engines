@@ -35,6 +35,7 @@ Current time (UTC): $(date -u +%FT%TZ)"
 
 timeout 1800 claude -p "$PROMPT" \
   --add-dir /workspace/isaaclab --add-dir "$HOME/runs" \
+  --add-dir "$(readlink -f /workspace/isaaclab/_isaac_sim)/kit/python" \
   --permission-mode dontAsk --permission-prompts none \
   --allowedTools "$ALLOWED" \
   > "$OUT" 2>&1
