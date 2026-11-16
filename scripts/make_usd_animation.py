@@ -25,7 +25,7 @@ import argparse
 import json
 import os
 
-from pxr import Gf, Sdf, Usd, UsdGeom
+from pxr import Gf, Sdf, Usd, UsdGeom, UsdShade
 
 
 def _matrix(pos, quat_xyzw) -> Gf.Matrix4d:
@@ -34,6 +34,42 @@ def _matrix(pos, quat_xyzw) -> Gf.Matrix4d:
     m.SetRotateOnly(Gf.Quatd(w, Gf.Vec3d(x, y, z)).GetNormalized())
     m.SetTranslateOnly(Gf.Vec3d(*pos))
     return m
+
+
+# Plain UsdPreviewSurface colours, so the scene doesn't render white when its original (Omniverse/MDL) materials
+# can't be found. Colours are approximate: the LBR iiwa is light grey, the Allegro Hand dark grey/black.
+LOOKS = {
+    "arm":   ((0.80, 0.80, 0.78), 0.35, 0.0),
+    "hand":  ((0.08, 0.08, 0.09), 0.40, 0.2),
+    "cube":  ((0.10, 0.35, 0.85), 0.50, 0.0),
+    "table": ((0.55, 0.40, 0.25), 0.70, 0.0),
+}
+
+
+def _make_material(stage, name, color, roughness, metallic):
+    mat = UsdShade.Material.Define(stage, f"/Looks/{name}")
+    sh = UsdShade.Shader.Define(stage, f"/Looks/{name}/Surface")
+    sh.CreateIdAttr("UsdPreviewSurface")
+    sh.CreateInput("diffuseColor", Sdf.ValueTypeNames.Color3f).Set(Gf.Vec3f(*color))
+    sh.CreateInput("roughness", Sdf.ValueTypeNames.Float).Set(roughness)
+    sh.CreateInput("metallic", Sdf.ValueTypeNames.Float).Set(metallic)
+    mat.CreateSurfaceOutput().ConnectToSource(sh.ConnectableAPI(), "surface")
+    return mat
+
+
+def _bind(stage, path, mat, stop_at=()):
+    """Bind mat directly on every shape under path, skipping subtrees that start at another path in stop_at."""
+    color = Gf.Vec3f(*mat.GetPrim().GetChild("Surface").GetAttribute("inputs:diffuseColor").Get())
+    it = iter(Usd.PrimRange(stage.GetPrimAtPath(path)))
+    for p in it:
+        if str(p.GetPath()) != path and str(p.GetPath()) in stop_at:
+            it.PruneChildren()
+            continue
+        if p.IsA(UsdGeom.Gprim):
+            over = stage.OverridePrim(p.GetPath())
+            UsdShade.MaterialBindingAPI.Apply(over)
+            UsdShade.MaterialBindingAPI(over).Bind(mat)
+            UsdGeom.Gprim(over).CreateDisplayColorAttr([color])  # for viewers that ignore materials
 
 
 def _env_path(path: str, i: int) -> str:
@@ -49,6 +85,7 @@ def main():
     ap.add_argument("--all_envs", action="store_true")
     ap.add_argument("--usd_from", default="", help="Take the scene's prim paths from this recording (a PhysX one), "
                     "for a recording played in Newton, which can't export the scene itself.")
+    ap.add_argument("--keep_materials", action="store_true", help="Don't replace the scene's materials with plain colours.")
     ap.add_argument("--goal_size", type=float, default=0.06, help="Edge length (m) of the goal marker cube.")
     args = ap.parse_args()
 
@@ -86,6 +123,8 @@ def main():
             if i != args.env:
                 stage.OverridePrim(f"/World/envs/env_{i}").SetActive(False)
 
+    mats = {} if args.keep_materials else {k: _make_material(stage, k, *v) for k, v in LOOKS.items()}
+
     xcache = UsdGeom.XformCache(Usd.TimeCode.Default())
     for i in envs:
         origin = Gf.Vec3d(*meta["env_origins"][i])
@@ -98,6 +137,15 @@ def main():
                 animated.append((prim_of[b], lambda e, k=k: _matrix(Gf.Vec3d(*e["body_pos"][k]) + origin, e["body_quat"][k])))
         obj_path = _env_path(usd["object_prim"], i)
         animated.append((obj_path, lambda e: _matrix(Gf.Vec3d(*e["object_pos"]) + origin, e["object_quat"])))
+
+        if mats:
+            links = set(prim_of.values())
+            for b, p in prim_of.items():
+                _bind(stage, p, mats["arm" if b.startswith("iiwa") else "hand"], stop_at=links)
+            _bind(stage, obj_path, mats["cube"])
+            table = _env_path(usd["env_prim"], i) + "/table"
+            if scene.GetPrimAtPath(table):
+                _bind(stage, table, mats["table"])
 
         goal_path = _env_path(usd["env_prim"], i) + "/Goal"
         goal = UsdGeom.Cube.Define(stage, goal_path)
