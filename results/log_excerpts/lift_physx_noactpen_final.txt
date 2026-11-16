@@ -1,0 +1,60 @@
+                    Mean surrogate loss: -0.0147
+                      Mean entropy loss: 44.2345
+                            Mean reward: 8.28
+                    Mean episode length: 326.67
+                        Mean action std: 1.69
+                   Metrics/success_rate: 0.0000
+               Episode_Reward/action_l2: 0.0000
+          Episode_Reward/action_rate_l2: 0.0000
+       Episode_Reward/fingers_to_object: 0.5226
+       Episode_Reward/position_tracking: 0.0160
+                 Episode_Reward/success: 0.0000
+       Episode_Reward/early_termination: -0.0000
+     Episode_Reward/good_finger_contact: 0.3258
+           Episode_Reward/contact_count: 0.5548
+                         Curriculum/adr: 0.0002
+     Metrics/object_pose/position_error: 0.7254
+  Metrics/object_pose/orientation_error: 2.2502
+           Episode_Termination/time_out: 0.8642
+Episode_Termination/object_out_of_bound: 0.1196
+     Episode_Termination/abnormal_robot: 0.0182
+--------------------------------------------------------------------------------
+                         Iteration time: 2.30s
+                           Time elapsed: 03:43:58
+                                    ETA: 00:00:04
+
+################################################################################
+                          Learning iteration 2999/3000
+
+                            Total steps: 49152000
+                       Steps per second: 7022
+                        Collection time: 2.227s
+                          Learning time: 0.106s
+                        Mean value loss: 0.0239
+                    Mean surrogate loss: -0.0129
+                      Mean entropy loss: 44.2361
+                            Mean reward: 8.63
+                    Mean episode length: 335.56
+                        Mean action std: 1.69
+                   Metrics/success_rate: 0.0000
+               Episode_Reward/action_l2: 0.0000
+          Episode_Reward/action_rate_l2: 0.0000
+       Episode_Reward/fingers_to_object: 0.5411
+       Episode_Reward/position_tracking: 0.0153
+                 Episode_Reward/success: 0.0000
+       Episode_Reward/early_termination: -0.0000
+     Episode_Reward/good_finger_contact: 0.3339
+           Episode_Reward/contact_count: 0.5748
+                         Curriculum/adr: 0.0002
+     Metrics/object_pose/position_error: 0.6616
+  Metrics/object_pose/orientation_error: 2.2889
+           Episode_Termination/time_out: 0.8732
+Episode_Termination/object_out_of_bound: 0.1116
+     Episode_Termination/abnormal_robot: 0.0171
+--------------------------------------------------------------------------------
+                         Iteration time: 2.33s
+                           Time elapsed: 03:44:00
+                                    ETA: 00:00:00
+
+Training time: 13652.36 seconds
+[INFO]: SimulationContext cleared

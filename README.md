@@ -49,6 +49,7 @@ Final training metrics, with exploration noise on (deterministic evaluation come
 | Reorient (4,096 envs) | PhysX | ~50% (last-500 mean, training-time) | ~1% | 0.50 | 0 |
 | Reorient (4,096 envs) | Newton | ~65% (last-500 mean, training-time) | ~30% | 0.85 | 0 |
 | Lift, no grasp rewards (T22 B, 3,000 iters) | PhysX | 93% (final iteration, training-time) | ~2% | 0.99 | 0 |
+| Lift, no smoothness penalties (T22 A, 3,000 iters) | PhysX | 0% (final iteration, training-time) | ~2% | 0.0002 | 0 |
 
 **Finding so far:** at the same curriculum difficulty, Newton ends ~7× more episodes with the robot in an
 abnormal state, and diverged to NaN once. Configs differ only in the solver block (see [`notes/log.md`](notes/log.md)).

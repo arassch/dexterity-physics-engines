@@ -834,3 +834,24 @@ So the bug is in the clamp patch, not the harness. PLAN.md's fallback is to clam
   should come out close to T25b's 17/64.
 - T22 B (`nograsp`, `model_2999.pt`) in PhysX, 1,025 episodes: **success 90.2%** (CI 88.3–91.9%), abnormal_robot
   0.8%, object_out_of_bound 1.4%, time_out 97.9% (`results/cross_eval.csv`, label `lift`).
+
+## 2026-11-16 16:55 UTC: T22 A (`noactpen`) never learned to lift; 0% in both engines. T19 64-env check (server agent)
+
+- **T22 A** (Lift, PhysX, `action_l2` = `action_rate_l2` = 0), folder `2026-11-16_12-45-44`, finished normally:
+  13,652 s, 0 crashes. Final iteration 2999 (training-time, with exploration noise): **success 0.00** (0.0 throughout),
+  abnormal_robot 0.017, **ADR 0.0002** (the curriculum never advanced), mean reward 8.63, 2.33 s/iter.
+  B (same length, normal smoothness penalties, no grasp rewards) reached 0.93 / ADR 0.99. So without the two action
+  penalties, Lift was not learned within 3,000 iterations. **Surprising:** I expected a jerkier policy that still
+  succeeds, not one that never succeeds.
+- Evals, 1,024+ episodes each (`results/cross_eval.csv`, label `lift`; rows written by the previous wake-up, committed now):
+  - A in PhysX: **0.0%** (CI 0.0–0.4%), abnormal_robot 1.7%, object_out_of_bound 4.1%, time_out 94.3%.
+  - A in Newton: **0.0%** (CI 0.0–0.4%), **abnormal_robot 98.5%**, run took 99 steps (PhysX 1,440).
+  - For comparison: T1 `model_3000.pt` baseline PhysX 7.9%, Newton 0.0%; B in PhysX 90.2%.
+- Clips for A, B and the baseline are recording to `~/runs/videos/lift_physx_noactpen`, `lift_physx_nograsp` and
+  `lift_physx_baseline3000`. I used `--out` so A and B don't both write `lift_physx/model_2999.mp4`.
+  `results/reward_experiment.md` and Finding 6 come after the clips.
+- **T19 64-env `--check`** (8 substeps, per-physics-step clamp, default params; `~/runs/t19_harness_check64.log`):
+  finger RMS to PhysX a 0.0270 rad (resets 9/64, abnormal_robot 0), b 0.0215 rad (6/64, 0), c 0.0995 rad (18/64,
+  **abnormal_robot 16/64**). PhysX reference resets: a 3, b 3, c 0. That is close to T25b's best row (17/64).
+  Started the same check at 4 and 2 substeps for the substep choice, and wrote `scripts/train_clamped.py` for the speed
+  test (it wraps rsl_rl's `train_rsl_rl.py` and adds the same clamp plus `--num_substeps`).
