@@ -110,7 +110,12 @@ def install_substep_clamp(robot, joint_ids, env_count):
 
     NewtonManager._step_solver = classmethod(_step_solver)
     NewtonManager._clamp_arrays = (idx_wp, lim_wp)  # keep alive for the graph
+    # Keep the first graph alive: destroying it frees memory-pool buffers that were allocated lazily during its
+    # capture and are still referenced by the solver (suspected cause of smoke attempt 1's illegal memory access).
+    NewtonManager._pre_clamp_graph = NewtonManager._graph
+    wp.synchronize_device(dev)
     NewtonManager._capture_or_defer_graph()  # re-capture so the graph contains the clamp
+    wp.synchronize_device(dev)
     return idx_wp, lim_wp
 
 

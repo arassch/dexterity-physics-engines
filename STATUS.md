@@ -1,41 +1,36 @@
 # Status
-Updated: 2026-11-16 16:20 UTC by the server agent (wake-up: state changed — PLAN.md rewrote T19)
+Updated: 2026-11-16 16:37 UTC by the server agent (wake-up: state changed, T22 B finished)
 
-Instance hours since 15 Nov 16:00 UTC: **≈ 3.9 h ≈ $14.2** (estimate: ~0.3 h on 15 Nov, plus ~3.6 h since the
-12:34 UTC boot, uptime 3:22 at 15:57).
+Instance hours since 15 Nov 16:00 UTC: **≈ 4.2 h ≈ $15.3** (estimate, as before plus ~0.3 h).
 
 ## GPU jobs
 | Task | Engine | Iteration | Success | abnormal_robot | ADR | ETA |
 |---|---|---|---|---|---|---|
-| T22 A `noactpen` | PhysX (Lift) | 2,427 / 3,000 | 0.0 | 0.028 | 0.0 | ~44 min |
-| T22 B `nograsp` | PhysX (Lift) | 2,668 / 3,000 | 0.83 | 0.015 | 0.98 | ~23 min |
-| T19 harness smoke (eval) | Newton | – | – | – | max | minutes |
+| T22 A `noactpen` | PhysX (Lift) | 2,800 / 3,000 | 0.0 | 0.011 | 0.0 | ~16 min |
+| T22 eval: B in PhysX | PhysX | eval, 1,024 eps | – | – | – | minutes |
 
-GPU 10.6 GB / 46 GB at 15:57. Training success rates include exploration noise. Iteration time A 4.55 s, B 4.15 s.
+GPU 10.3 GB / 46 GB. Training success rates include exploration noise. A: 4.79 s/iteration, action std 1.65 (B: 0.73).
 
 ## Since last update
-- **T19 started (agent part).**
-  - Recorded the PhysX reference at ADR max, signals a+b+c, 64 envs: `~/runs/step_response/t19_ref_physx.npz`
-    (log `~/runs/t19_ref_physx.log`, finished without errors). The stored T18 a/b were at ADR 0, so T19 needed this.
-  - Wrote `scripts/sysid_harness.py` (module + `--check` CLI, API as in PLAN.md). The velocity clamp runs **once per
-    solver substep**: it wraps `NewtonManager._step_solver` with a Warp kernel on the finger dofs of `state_0.joint_qd`
-    and re-captures the CUDA graph. MuJoCo Warp copies `state.joint_qd` into its data at every substep
-    (`update_data_interval=1`, `solver_mujoco.py:3278`), so the clamp takes effect each substep.
-  - 8-env smoke test of `--check` **failed** (attempt 1 of 2 allowed): `torch.AcceleratorError: CUDA error: an
-    illegal memory access was encountered` (`~/runs/t19_harness_smoke.log:222`), after the env was built. Likely
-    cause: the clamp patch and graph re-capture (`_capture_or_defer_graph`). Next wake-up: rerun with
-    `CUDA_LAUNCH_BLOCKING`-style isolation (`--no_clamp` first to split harness bugs from clamp bugs), then fix.
-    T22 training processes are separate and unaffected.
-- Still to do for T19: verify the smoke test; full `--check` at 64 envs; signal-c counts at 2/4/8 substeps with the
-  per-substep clamp; the training-speed test (Lift 512 envs, 50 iterations, 2/4/8 substeps with the clamp). The speed
-  test waits for the two T22 training slots to free up (~44 min). It also needs the clamp inside training, i.e. a small
-  wrapper around train.py. I'll check that this counts as allowed before I write it.
+- **T22 B (`nograsp`) finished normally** (`2026-11-16_12-46-44`, 12,814 s, 0 resumes). Final: success 0.93
+  (training), abnormal_robot 0.017, ADR 0.986, mean reward 19.05, 4.25 s/iter. Backed up `model_2999.pt`, configs,
+  final excerpt; RUNS.md, README, notes/log.md updated.
+- T22 evals: **T1 baseline `model_3000.pt` in Newton: 0.0%** (1,026 eps, abnormal_robot 97.1%). B in PhysX is running.
+  Baseline in PhysX waits for B's eval to finish (`eval.sh` gives both the same log name).
+  A in PhysX and Newton come after A finishes.
+- **T19:** per-substep clamp smoke test failed again (attempt 2 of 2). The fix kept the first CUDA graph alive and
+  synchronised around the re-capture; same `illegal memory access` on the first `env.step()`. The `--no_clamp` smoke
+  test **passes**: signal-c finger RMS to PhysX 0.099 rad, 3/8 abnormal_robot (PhysX 0/8); a 0.027 rad, b 0.022 rad.
+  So the harness works and the bug is in the substep patch. Next wake-up: switch to PLAN.md's fallback, a clamp once
+  per physics step (like T25's `--clamp_vel`), unless told otherwise.
 
 ## Needs a human
-- T19 speed test: training with the per-substep clamp needs `train.py` launched through a wrapper that installs the
-  clamp. `scripts/train.sh` can't do that. Unless told otherwise, I'll write `scripts/train_clamped.py` (it only
-  installs the clamp, then runs Isaac Lab's train.py unchanged) and launch it with `scripts/run_isaac.sh`, 50
-  iterations, one at a time, in a free training slot.
+- T19: the per-solver-substep clamp (wrapping `NewtonManager._step_solver` + graph re-capture) crashes CUDA twice. I'll
+  use the plan's per-physics-step fallback. T25b's 17/64 was measured with a per-physics-step clamp, so the fallback
+  should reproduce it. If you'd rather I debug the substep hook (for example, install it before the first graph
+  capture), say so in PLAN.md.
+- T19 speed test: it still needs a `scripts/train_clamped.py` wrapper (installs the clamp, then runs train.py
+  unchanged). I'll write it unless told otherwise.
 - At ADR max, `variable_gravity` gives g_z ≈ −7.1 to −7.6, not −9.81. FYI.
 - Sara: "What I learned" notes for T17, T23, T18, T25 and T25b.
 - Still open from before: watching the 10 Reorient clips.

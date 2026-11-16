@@ -466,7 +466,7 @@ design, randomisation and distillation (DeepMind, Humanoid, Machenta Robot Learn
 - write `results/reward_experiment.md`: one table (variant, success, abnormal_robot, object_out_of_bound, time_out,
   and the mean |action| and mean |action rate| if the logs give them). Plus "Finding 6" in `notes/log.md`, describing
   what each variant does instead, from the logs. Sara watches the clips and adds her description.
-- result:
+- result: B done (iter 2999, training success 0.93, abnormal_robot 0.017, ADR 0.99; `checkpoints/lift_physx_nograsp/model_2999.pt`). Baseline in Newton: 0.0% (1,026 eps). A still training.
 
 ## Agent notes
 
@@ -492,3 +492,4 @@ design, randomisation and distillation (DeepMind, Humanoid, Machenta Robot Learn
 - 2026-11-16 14:51 UTC: T25 done: committed step 1 (left uncommitted by an earlier wake-up), step 2 code read (PhysX side only), added `--adr max`, `--signals`, `--clamp_vel` and per-env termination terms to `step_response.py`, smoke-tested, ran signal c at ADR max on both engines and the clamped Newton run. Finding 9. T22 A/B still training (0/2 resumes each).
 - 2026-11-16 15:50 UTC: T25b done: added `--no_self_collision`, `--num_substeps`, and pre-reset/per-physics-step recording to `step_response.py`, plus `scripts/t25b_analysis.py`; smoke test, then 8 signal-c runs (≤ 4 at a time), and read the newton source. Finding 10. T19 proposal in STATUS.md. T22 A/B still training.
 - 2026-11-16 16:20 UTC: T19 started: recorded PhysX reference a+b+c at ADR max (`~/runs/step_response/t19_ref_physx.npz`), wrote `scripts/sysid_harness.py` (clamp once per solver substep via a wrapped `NewtonManager._step_solver`), 8-env smoke check launched, not yet verified. T22 A/B still training (0/2 resumes each).
+- 2026-11-16 16:35 UTC: T22 B finished normally (model_2999, 0 resumes), backed up; evals started: B in PhysX (running), T1 baseline in Newton (done, 0.0%). T19: per-substep clamp smoke failed again after a fix (keep the pre-clamp graph alive), so 2/2 attempts used; `--no_clamp` smoke passes. Next: the per-physics-step fallback from T19 step 1.

@@ -799,3 +799,24 @@ Full write-up: `results/blowup_diagnosis.md` (T25b section), per-blow-up rows in
   control step".
 - Open: ~4 trajectories (index finger, steps 16–21) still blow up at 8 substeps + clamp. The clamp is applied per
   1/120 s physics step, not per solver substep, which may explain part of this.
+
+## 2026-11-16 16:30 UTC: T22 B (`nograsp`) finished (server agent)
+
+Run `2026-11-16_12-46-44`, 3,000 iterations, 12,814 s, no crash. Final iteration (2999), training-time with
+exploration noise: success_rate 0.932 (0.896 at 2998), abnormal_robot 0.0165, object_out_of_bound 0.0156, time_out
+0.968, ADR 0.986, mean reward 19.05, 4.25 s/iteration (GPU shared with A). The `good_finger_contact` and
+`contact_count` rewards read 0.0000, as intended. Without grasp rewards the policy still learned to lift
+(position_tracking 0.84, position error 0.19 m). Backed up `model_2999.pt`, configs and the final excerpt. Evals started.
+T1 baseline `lift_physx/model_3000.pt` in Newton (1,026 episodes): success 0.0% (CI 0–0.37%), abnormal_robot 97.1%,
+object_out_of_bound 2.9%.
+
+## 2026-11-16 16:35 UTC: T19, the per-substep velocity clamp crashes the CUDA graph; the harness itself works (server agent)
+
+8-env `--check` smoke tests, `scripts/sysid_harness.py`, 8 substeps, ADR max:
+- with the per-substep clamp (wrapped `NewtonManager._step_solver` plus graph re-capture): `CUDA error: an illegal
+  memory access` on the first `env.step()` (inside `termination_manager.compute`), twice. Attempt 2 also kept the
+  first graph alive and synchronised around the re-capture. Same error (`~/runs/t19_harness_smoke2.log`).
+- `--no_clamp`: runs. Finger RMS to PhysX: a 0.027 rad (1/8 resets, 0 abnormal_robot), b 0.022 rad (0/8),
+  c 0.099 rad (**3/8 abnormal_robot**; PhysX 0/8) (`~/runs/t19_harness_smoke_noclamp.log`).
+So the bug is in the clamp patch, not the harness. PLAN.md's fallback is to clamp once per physics step (as in T25's
+`--clamp_vel`).

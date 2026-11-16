@@ -20,7 +20,7 @@ Output folders are under `/workspace/isaaclab/logs/rsl_rl/dexsuite_kuka_allegro/
 | 12 | Reorient | Newton | 15,000 max (**4,096 envs**, T11, shares GPU with #11) | `2026-11-12_22-19-43` | Thu 22:19 | Done, 57,142 s (15.9 h), 0 crashes | Training success last-500 mean 64.7% (final 66.0%), abnormal_robot 500-it mean 0.300 (final 0.296), ADR 0.853, mean reward ~9.1 (final 9.47), ~3.9 s/it sharing GPU |
 | 13 | Lift | PhysX | 5 (T22 step 0 check, `--override env.rewards.action_l2.weight=0`) | `2026-11-16_12-44-30` | Mon 12:44 | Done, 12.19 s | Check only: `params/env.yaml` shows `action_l2` `weight: 0` |
 | 14 | Lift | PhysX | 3,000 (T22 A `noactpen`: action_l2 = action_rate_l2 = 0) | `2026-11-16_12-45-44` | Mon 12:45 | Running | log `~/runs/lift_physx_3000_noactpen.log` |
-| 15 | Lift | PhysX | 3,000 (T22 B `nograsp`: good_finger_contact = contact_count = 0) | `2026-11-16_12-46-44` | Mon 12:46 | Running | log `~/runs/lift_physx_3000_nograsp.log` |
+| 15 | Lift | PhysX | 3,000 (T22 B `nograsp`: good_finger_contact = contact_count = 0) | `2026-11-16_12-46-44` | Mon 12:46 | Done, 12,814 s (3.56 h), no crash | Final (iter 2999): success 0.93 (training, with exploration noise), abnormal_robot 0.017, ADR 0.986, mean reward 19.05, 4.25 s/iter. `checkpoints/lift_physx_nograsp/model_2999.pt`; log `~/runs/lift_physx_3000_nograsp.log` |
 
 Runs 2–3 and 4–5 shared one GPU, so their wall-clock times are not a fair speed comparison.
 
