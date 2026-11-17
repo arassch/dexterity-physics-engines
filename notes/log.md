@@ -981,3 +981,28 @@ unchanged, `scripts/sysid_check.py`) on episodes 0–9 (44 reference envs), then
 
 So the calibrated simulator fails the fidelity check. The fit removes part of the robot blow-ups in closed loop,
 not the gap.
+
+## 2026-11-17 16:48 UTC: Finding 12, blow-up counts depend on the rollout call number, not on luck (T26, server agent)
+
+`scripts/sysid_repeat.py` → `results/sysid_repeat.md` / `.json`. Newton harness (clamp + 8 substeps, ADR max), 1,024
+envs = 4 candidates × 4 blocks of 64 envs, the same params array rolled out in 5 calls; Sara's `score_candidate`
+unchanged. Blow-ups per 64-env block (calls separated by "·", the 4 blocks inside each):
+
+| candidate | call 1 | call 2 | calls 3–5 |
+|---|---|---|---|
+| default | 37/26/29/36 | 9/8/8/8 | 5 in all 12 blocks |
+| full fit (T19 best: 0.0131, ×1.149, ×1.591) | 31/36/36/33 | 5/6/5/7 | 0 (one block: 1) |
+| T20 train best (0.0110, ×1.149, ×1.149) | 28/33/31/23 | 6/6/6/6 | 4–6 |
+| 0 in T19 and T20 (0.0158, ×1.149, ×1.516) | 34/31/29/38 | 3/2/1/2 | 0 (two blocks: 1) |
+
+- The first rollout call after the env is built gives +25–30 blow-ups to **every** candidate. Counts settle by call 3.
+  The smoke test (512 envs, 2 calls) showed the same pattern (call 1 ≈ 23–36, call 2 ≈ 1–7).
+- Within one call, blocks differ by about 1 (mean std 0.7–1.1). Nothing is bit-identical: 0/60 block pairs and 0/64
+  call pairs have identical `joint_pos`/`reset_step`.
+- T19's fit scored the default alone in call 1 (22 blow-ups, and the penalty level 0.465 came from it). T20 scored
+  [default, full fit] in call 1 (26 vs 28). Every grid point ran in call ≥ 2. So "22 → 0" and "28 vs 26" are both
+  the call-1 effect, not the winner's curse. Settled, the full fit still does better than the defaults: 0 vs 5 per
+  64 references, with the gap ≫ the block noise.
+- Not known: why call 1 differs (state left by env construction or the first `u.reset()`, ADR or curriculum state,
+  graph capture, warm-start?). It isn't explained yet. The penalty level, and so every loss in T19/T20, came from a
+  call-1 rollout.

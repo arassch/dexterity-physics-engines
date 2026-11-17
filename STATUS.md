@@ -1,47 +1,46 @@
 # Status
-Updated: 2026-11-17 16:41 UTC by the server agent (wake-up: state changed, the T20 rebase was finished and pushed)
+Updated: 2026-11-17 16:48 UTC by the server agent (wake-up: manual --once)
 
-Instance hours since 15 Nov 16:00 UTC: **≈ 7 h ≈ $26** (estimate. I can't read `uptime`, and no start/stop record
-exists. From agent tick logs: ~0.3 h on 15 Nov, ~6 h on 16 Nov 12:30–18:30, ~0.5 h today). About 34 h ≈ $124 left
-of the $150. Please correct this from the Brev console if it's off.
+Instance hours since 15 Nov 16:00 UTC: **≈ 7.3 h ≈ $27** (estimate, as before plus this wake-up. I can't read
+`uptime`). About 33.7 h ≈ $123 left of the $150. Please correct this from the Brev console if it's off.
 
 ## GPU jobs
 | Task | Engine | Iteration | Success | abnormal_robot | ADR | ETA |
 |---|---|---|---|---|---|---|
 | – | – | – | – | – | – | – |
 
-No GPU jobs (0 MiB). T20 is done. T21 is the gate (`blocked`), so nothing else starts.
+No GPU jobs. T26 measured (~2 min of GPU); T26 and T21 are `blocked`.
 
 ## Since last update
-- Since 16:03, only git changed: the stuck rebase is finished and the T20 commit (a9a0f53) is on GitHub. No GPU
-  jobs. T21 is `blocked`, so nothing starts.
-- (16:03) T20 done (eval only, ~10 min of GPU): `scripts/sysid_check.py` (new), `evaluate.py --robot_params`,
-  `eval.sh ... <match> fitted`. Smoke tests passed; the fitted values are applied and checked after build.
-  Results in `results/sysid_check.md`, `results/cross_eval.md` "Fitted robot", Finding 11.
+- T26: wrote `scripts/sysid_repeat.py`. Smoke test (512 envs, 2 calls), then the full run (1,024 envs = 4 candidates
+  × 4 blocks of 64, 5 calls). No errors. Results in `results/sysid_repeat.md` / `.json`, Finding 12.
+- Averaged refit (`sysid_fit_r4`) **not run**, see below.
 
 ## Needs a human
-- **T21 gate: T20 numbers** (1,024+ episodes each, `--match_order`; fitted Newton = clamp + 8 substeps + Sara's fit):
+- **T26 result: blow-up counts depend on the rollout call number.** Blow-ups per 64-env block:
 
-  | | Lift | Reorient |
-  |---|---|---|
-  | PhysX → fitted Newton (fidelity check) | **1.0%** (0.5–1.8), abnormal 88.7% | **0.1%** (0.02–0.6), abnormal 70.9% |
-  | PhysX → default Newton (T23) | 0.2%, abnormal 98.5% | 0.0%, abnormal 95.1% |
-  | Newton → fitted Newton (control) | **94.8%** (93.2–96.0) | 65.6% (62.7–68.5) |
-  | Newton → default Newton (T23) | 86.9% (84.8–88.8) | 63.9% (61.0–66.8) |
-  | Newton → PhysX, unchanged (T21 baseline = T23 rows) | 0.0% | 0.0% |
+  | candidate | call 1 | call 2 | calls 3–5 |
+  |---|---|---|---|
+  | default | 26–37 | 8–9 | 5 (all 12 blocks) |
+  | full fit (T19 best) | 31–36 | 5–7 | 0 (one block 1) |
+  | T20 train best | 23–33 | 6 | 4–6 |
+  | 0 in T19 and T20 | 29–38 | 1–3 | 0–1 |
 
-  Hours/$ since 15 Nov: ≈ 7 h ≈ $26 (estimate, see top). Left: ≈ 34 h. T21 stays `blocked` until the planning
-  chat decides the next runs.
-- **Surprising: the fit's "22 → 0 blow-ups" doesn't reproduce.** In T20's held-out run, the same fitted parameters on
-  the same 64 references gave 28 blow-ups, against 26 for the defaults (fit run: 0 vs 22). Many grid points get 0 in
-  both runs (188/343 and 220/343). So blow-up counts seem to vary from run to run by more than the gap between
-  candidates, and the minimum over 343 candidates picks a lucky one. Fitting on episodes 0–9 gives 0 train blow-ups,
-  but the 5/20 held-out signal-c blow-ups stay, the same as the defaults. Suggest a repeatability test before
-  training on this fit: the same params, several rollout calls, different env blocks. Not done (not in PLAN).
-- Step-response check: not sluggish. Mean overshoot PhysX 38.5%, default Newton 44.5%, fitted 44.4%. Rise times
-  are about equal (0.086 / 0.083 / 0.089 s). Steady-state error is 7× PhysX's in both Newton variants (0.014 vs
-  0.002 rad). The worst joint is the thumb (thumb_joint_0 overshoot 41 / 76 / 65%).
+  Within a call, blocks differ by about 1 (std 0.7–1.1). Nothing is bit-identical (0/60 block pairs, 0/64 call
+  pairs). T19 scored the default alone in call 1 (22, and the penalty level), and T20 scored [default, fit] in
+  call 1 (26 vs 28). All grid points ran later. So the "doesn't reproduce" from T20 is a **call-1 artifact, not the
+  winner's curse**. Settled (calls ≥ 3), the full fit beats the defaults: 0 vs 5 blow-ups per 64 references, a gap
+  much bigger than the noise.
+- **Averaged refit not started, two reasons.** (1) `SYSID_REPEATS=4 SYSID_OUT=... scripts/run_isaac.sh ...` is denied
+  by my command allowlist (env-var prefix), and I didn't work around it. (2) The refit would still score the default
+  in call 1 and take the penalty level from it, so its "default" row and all its losses carry the same artifact.
+  Suggestion: add one or two warm-up `rollout()` calls (discarded) at the start of `fit()` and `sysid_check.py`, and
+  let the agent pass the env vars some allowed way (e.g. `--repeats`/`--out` flags). Then rerun T19/T20's comparison.
+  Why call 1 differs (state left by env construction or the first reset, ADR state, graph capture) isn't known yet.
+- Comparison for the T21 gate: single-run fit vs averaged fit is not available (refit not run). Use T26's settled
+  numbers above. T20's closed-loop cross-eval numbers (previous STATUS / `results/cross_eval.md` "Fitted robot")
+  still stand: they don't depend on the fit's scoring order.
 - Still open from before: T22 A/B surprise (Finding 6); the 4-vs-8 substep call is close; ADR-max gravity ≈ −7.1 to
   −7.6, not −9.81.
 - Sara: set T19 `done` when you're happy; `results/plots/sysid_loss.png`; "What I learned" notes for T17, T23, T18,
-  T25, T25b, T22, T20 (T19's is in); watch the T22 and Reorient clips.
+  T25, T25b, T22, T20, T26; watch the T22 and Reorient clips.

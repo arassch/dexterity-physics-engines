@@ -472,7 +472,7 @@ design, randomisation and distillation (DeepMind, Humanoid, Machenta Robot Learn
   (vs 86.9%), Reorient 65.6% (vs 63.9%). Newton → PhysX = T23 rows, 0%. `results/sysid_check.md`, `results/cross_eval.md`, Finding 11.
 
 ### T26 · How noisy are the blow-up counts? (eval only, ~10 min) · before T21
-- status: todo
+- status: blocked
 - why: T20 found the fit's "22 → 0 blow-ups" doesn't reproduce (same params: 28 vs 26 for defaults in another run).
   If blow-up counts vary run to run by more than the gap between candidates, the grid's minimum is mostly luck (the
   winner's curse). Measure the noise before refitting or training on the fit.
@@ -495,7 +495,7 @@ design, randomisation and distillation (DeepMind, Humanoid, Machenta Robot Learn
   write under "Needs a human". Don't edit Sara's four functions.
 - on done: "Finding 12" in `notes/log.md`, and the comparison (single-run fit vs averaged fit, if run) in STATUS.md
   for the T21 gate. Don't start T21.
-- result:
+- result: measured, `results/sysid_repeat.md`, Finding 12. The rollout call number dominates: call 1 gives +25–30 blow-ups to every candidate; from call 3 on default 5, full fit 0, T20 best ~5, zero point ~0 (block std ≈ 1; nothing bit-identical). Averaged refit NOT run: the `SYSID_REPEATS=4 ...` env-prefixed command is outside the agent's allowed commands, and it would still score the default in call 1 (see STATUS.md).
 
 ### T21 · Gate: stop and ask
 - status: blocked
@@ -558,3 +558,4 @@ design, randomisation and distillation (DeepMind, Humanoid, Machenta Robot Learn
 - 2026-11-16 17:00 UTC: T22 A finished normally (0 resumes), backed up (by the previous wake-up, committed now); evals A PhysX/Newton 0.0%; recorded the 3 clips (with `--out` names); wrote `results/reward_experiment.md` + Finding 6; T22 `done`. T19: 64-env checks at 8/4/2 substeps, wrote `scripts/train_clamped.py` (smoke OK), speed runs 2/4/8; chose 8 substeps (`results/sysid_settings.md`); T19 `blocked` for Sara's fit.
 - 2026-11-17 15:56 UTC: T20 started: wrote `scripts/sysid_check.py` (step 1: step response + held-out grid search, Sara's functions imported unchanged), `evaluate.py --robot_params` and `eval.sh ... <match> fitted`; both smoke tests passed (applied values checked). Running: `sysid_check` (1,024 envs) and 3 fitted evals (Reorient P→N, Lift P→N, Reorient N→N); Lift N→N next. Newton→PhysX unchanged reuses T23's matched rows (identical setup).
 - 2026-11-17 16:03 UTC: T20 done: sysid_check and all 4 fitted evals finished without errors; wrote `results/sysid_check.md`, cross_eval.md "Fitted robot", Finding 11. T21 gate reported in STATUS.md (T21 stays `blocked`).
+- 2026-11-17 16:48 UTC: T26 measured: wrote `scripts/sysid_repeat.py`, smoke (512 envs) + full run (1,024 envs, 5 calls), `results/sysid_repeat.md`, Finding 12. Averaged refit not started (env-var command not allowed for the agent; call-1 effect needs a decision); T26 `blocked`.
