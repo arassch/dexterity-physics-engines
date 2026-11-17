@@ -389,7 +389,12 @@ design, randomisation and distillation (DeepMind, Humanoid, Machenta Robot Learn
   Finding 10; `results/blowup_diagnosis.md` T25b section, `results/t25b_tests.md`.
 
 ### T19 · System-ID: harness (agent), then the fit (by Sara)
-- status: blocked
+- status: running
+- Tue 17 Nov 15:38: Sara's `scripts/sysid_fit.py` is written (make_grid, refine_grid, score_candidate,
+  choose_best; penalty level fixed from the default run) and running by hand on 1,024 envs (16 candidates per call),
+  log `~/runs/sysid_fit.log`. The PhysX reference is now also in the repo: `results/sysid/t19_ref_physx.npz`
+  (use it if `~/runs/step_response/` is missing, e.g. on a fresh instance). The agent doesn't touch the fit; when
+  `results/sysid_robot.json` appears, report it in STATUS.md and wait for Sara to set T19 `done`.
 - rewritten Mon 16 Nov 15:55 from T25b (Finding 10). PhysX is the "real robot"; only Newton changes.
 - why: make Newton's robot respond like PhysX's to the policy's fast finger commands, so that a policy trained in
   Newton works in PhysX (T21). T25b: MuJoCo Warp ignores joint velocity limits, and the coarse step lets fingers
