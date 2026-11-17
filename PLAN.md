@@ -472,7 +472,7 @@ design, randomisation and distillation (DeepMind, Humanoid, Machenta Robot Learn
   (vs 86.9%), Reorient 65.6% (vs 63.9%). Newton → PhysX = T23 rows, 0%. `results/sysid_check.md`, `results/cross_eval.md`, Finding 11.
 
 ### T26 · How noisy are the blow-up counts? (eval only, ~10 min) · before T21
-- status: blocked
+- status: done (follow-up in T26b: the call effect is most likely ADR demotion)
 - why: T20 found the fit's "22 → 0 blow-ups" doesn't reproduce (same params: 28 vs 26 for defaults in another run).
   If blow-up counts vary run to run by more than the gap between candidates, the grid's minimum is mostly luck (the
   winner's curse). Measure the noise before refitting or training on the fit.
