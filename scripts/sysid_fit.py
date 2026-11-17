@@ -22,7 +22,8 @@ import numpy as np
 from sysid_harness import SIGNALS, run_with_harness
 
 REFS = 64                      # PhysX references per candidate (the harness's ref_env = i mod 64)
-OUT_JSON = os.path.join(os.path.dirname(__file__), "..", "results", "sysid_robot.json")
+OUT_JSON = os.environ.get("SYSID_OUT") or os.path.join(os.path.dirname(__file__), "..", "results", "sysid_robot.json")
+REPEATS = int(os.environ.get("SYSID_REPEATS", "1"))   # blocks of REFS envs per candidate, scores averaged
 PARAM_NAMES = ("armature", "damping_scale", "effort_scale")
 
 
@@ -140,25 +141,35 @@ def choose_best(rows):
 
 # ---------------------------------------------------------------------------------------------- plumbing
 def evaluate(h, candidates, penalty_level=None):
-    """Run every candidate on all REFS references, K = h.n // REFS candidates per rollout call.
+    """Run every candidate on all REFS references, K = h.n // (REFS * REPEATS) candidates per rollout call.
 
     penalty_level: the blow-up penalty yardstick, the same for every candidate (the default run's "level").
+    REPEATS > 1 (env SYSID_REPEATS) gives each candidate that many blocks of REFS envs in the same call and
+    averages the scores, against the run-to-run noise found in T20 (the winner's curse). Each row also gets
+    "<key>_std" over the repeats.
     """
-    k_per_call = h.n // REFS
-    assert k_per_call >= 1 and h.n % REFS == 0, f"num_envs must be a multiple of {REFS}, got {h.n}"
+    block = REFS * REPEATS
+    k_per_call = h.n // block
+    assert k_per_call >= 1 and h.n % REFS == 0, f"num_envs must be a multiple of {block}, got {h.n}"
     rows = []
     for start in range(0, len(candidates), k_per_call):
         batch = candidates[start:start + k_per_call]
-        params = np.repeat(np.asarray(batch, np.float32), REFS, axis=0)
+        params = np.repeat(np.asarray(batch, np.float32), block, axis=0)
         if len(params) < h.n:  # pad the last call with copies of the defaults; their scores are ignored
             pad = h.default_params()[: h.n - len(params)]
             params = np.concatenate([params, pad], 0)
         t0 = time.time()
         out = h.rollout(params)
         for j, p in enumerate(batch):
-            envs = np.arange(j * REFS, (j + 1) * REFS)
-            s = score_candidate(out, envs, out["finger"], penalty_level=penalty_level)
-            rows.append({**dict(zip(PARAM_NAMES, map(float, p))), **{k: _f(v) for k, v in s.items()}})
+            reps = [score_candidate(out, np.arange(j * block + r * REFS, j * block + (r + 1) * REFS), out["finger"],
+                                    penalty_level=penalty_level) for r in range(REPEATS)]
+            row = dict(zip(PARAM_NAMES, map(float, p)))
+            for k in reps[0]:
+                vals = np.array([float(x[k]) for x in reps])
+                row[k] = float(vals.mean())
+                if REPEATS > 1:
+                    row[k + "_std"] = float(vals.std())
+            rows.append(row)
         print(f"[FIT] candidates {start}-{start + len(batch) - 1}/{len(candidates)} in {time.time() - t0:.0f} s; "
               f"best so far: {min(rows, key=lambda r: r['loss'])}")
     return rows
@@ -171,7 +182,8 @@ def _f(v):
 def fit(h):
     lo, hi = h.param_bounds()
     default = h.default_params()[0]
-    print(f"[FIT] {h.n} envs = {h.n // REFS} candidates per call; bounds {lo} .. {hi}; default {default}")
+    print(f"[FIT] {h.n} envs = {h.n // (REFS * REPEATS)} candidates per call ({REPEATS} repeat(s) each); "
+          f"bounds {lo} .. {hi}; default {default}")
 
     base = evaluate(h, [default])[0]
     level = base["level"]  # penalty yardstick from the default run, used for every candidate after it
@@ -188,7 +200,7 @@ def fit(h):
     os.makedirs(os.path.dirname(OUT_JSON), exist_ok=True)
     with open(OUT_JSON, "w") as f:
         json.dump({"param_names": PARAM_NAMES, "best": best, "default": base,
-                   "penalty_level": level, "coarse": coarse, "fine": fine, "num_substeps": h.num_substeps,
+                   "penalty_level": level, "repeats": REPEATS, "coarse": coarse, "fine": fine, "num_substeps": h.num_substeps,
                    "clamp": f"{h.clamp} ({h.clamp_mode})", "signals": SIGNALS}, f, indent=1)
     print(f"[FIT] wrote {OUT_JSON}")
 

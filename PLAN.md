@@ -43,6 +43,10 @@ design, randomisation and distillation (DeepMind, Humanoid, Machenta Robot Learn
 
 ## Answers from humans
 
+- 2026-11-17 16:42 (Sara, planning chat): T20 read. The rebase is finished and pushed (a9a0f53). Next is T26
+  (repeatability), then the T21 gate; the planning chat's default for T21 is the sim-to-real Lift run (train in
+  corrected Newton with randomisation around the fitted values, deploy in PhysX), decided after T26.
+
 - 2026-11-16 16:35 (planning chat): T19 — the per-physics-step velocity clamp fallback is fine; don't debug the
   per-substep hook. Go ahead with `scripts/train_clamped.py` for the speed test (and later for T21's training).
 
@@ -466,6 +470,32 @@ design, randomisation and distillation (DeepMind, Humanoid, Machenta Robot Learn
   the full fit's 0 blow-ups don't reproduce (28 vs default 26 when re-run); fit on 10 episodes → 0 train, 5/20 held-out c.
   PhysX → fitted Newton: Lift 1.0%, Reorient 0.1% (abnormal_robot 88.7% / 70.9%). Newton → fitted Newton: Lift 94.8%
   (vs 86.9%), Reorient 65.6% (vs 63.9%). Newton → PhysX = T23 rows, 0%. `results/sysid_check.md`, `results/cross_eval.md`, Finding 11.
+
+### T26 · How noisy are the blow-up counts? (eval only, ~10 min) · before T21
+- status: todo
+- why: T20 found the fit's "22 → 0 blow-ups" doesn't reproduce (same params: 28 vs 26 for defaults in another run).
+  If blow-up counts vary run to run by more than the gap between candidates, the grid's minimum is mostly luck (the
+  winner's curse). Measure the noise before refitting or training on the fit.
+- requires: nothing running on the GPU. Harness defaults (fixed corrections, 8 substeps, ADR max), all 64 references.
+- candidates (4): default; Sara's full fit (`results/sysid_robot.json` best); the T20 train-episodes best
+  (armature 0.0110, damping 1.149, effort 1.149); and one grid point that scored 0 blow-ups in both T19 and T20
+  (from `results/sysid_check.json`).
+- measure two kinds of noise, with Sara's `score_candidate` unchanged:
+  1. **within a call:** one `rollout()` with 1,024 envs where each candidate gets 4 blocks of 64 envs (same params,
+     same references, different env indices). Are the 4 blocks identical or not?
+  2. **between calls:** repeat that rollout 5 times (5 calls, same params array). Same question across calls.
+  Also once: the same candidate in the same env block, two separate calls (is the simulator bit-for-bit deterministic?).
+- report in `results/sysid_repeat.md`: per candidate, blow-ups and loss (mean, std, min, max) within a call and between
+  calls; whether identical inputs give identical outputs; and a one-paragraph answer: is the difference between the
+  candidates bigger than the noise?
+- then, if the within-call blocks do vary (so averaging inside one call works): **rerun Sara's fit with averaging**,
+  `SYSID_REPEATS=4 SYSID_OUT=<repo>/results/sysid_robot_r4.json scripts/run_isaac.sh sysid_fit_r4 sysid_fit.py --headless
+  --num_envs 1024 physics=newton_mjwarp presets=cube` (4 blocks per candidate, scores averaged, `*_std` per row; about
+  4× slower, ~25 min). If the blocks are identical, don't rerun: report that only between-call repeats would help and
+  write under "Needs a human". Don't edit Sara's four functions.
+- on done: "Finding 12" in `notes/log.md`, and the comparison (single-run fit vs averaged fit, if run) in STATUS.md
+  for the T21 gate. Don't start T21.
+- result:
 
 ### T21 · Gate: stop and ask
 - status: blocked
