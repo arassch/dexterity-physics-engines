@@ -1,37 +1,49 @@
 # Status
-Updated: 2026-11-17 15:47 UTC by the server agent (wake-up: state changed, PLAN.md T19 set running by Sara)
+Updated: 2026-11-17 16:03 UTC by the server agent (wake-up: state changed, PLAN.md T20 rewritten and `todo`)
+
+Instance hours since 15 Nov 16:00 UTC: **≈ 7 h ≈ $26** (estimate. I can't read `uptime`, and no start/stop record
+exists. From agent tick logs: ~0.3 h on 15 Nov, ~6 h on 16 Nov 12:30–18:30, ~0.5 h today). About 34 h ≈ $124 left
+of the $150. Please correct this from the Brev console if it's off.
 
 ## GPU jobs
 | Task | Engine | Iteration | Success | abnormal_robot | ADR | ETA |
 |---|---|---|---|---|---|---|
 | – | – | – | – | – | – | – |
 
-No GPU jobs (`nvidia-smi` 0 MiB). Sara's T19 fit (`scripts/sysid_fit.py`, 1,024 envs, Newton) **finished** at
-15:44 UTC (~5 min) with no Traceback; it wrote `results/sysid_robot.json` (committed now as a backup).
-
-T19 fit result (from `~/runs/sysid_fit.log` / the json; 216 coarse + 125 fine candidates, penalty level 0.465):
-
-| | armature | damping_scale | effort_scale | loss | blowups | RMS a | RMS b | RMS c (rad) |
-|---|---|---|---|---|---|---|---|---|
-| default | 0.010 | 1.00 | 1.00 | 0.316 | 22 | 0.091 | 0.074 | 0.335 |
-| fitted  | 0.0131 | 1.149 | 1.591 | 0.208 | 0 | 0.019 | 0.049 | 0.324 |
-
-T19 stays `running` until Sara sets it `done`; T20 waits for that. T21 is a gate.
+No GPU jobs (0 MiB). T20 is done. T21 is the gate (`blocked`), so nothing else starts.
 
 ## Since last update
-- Sara's fit finished; I committed `results/sysid_robot.json`. Nothing started or stopped.
+- T20 done (eval only, ~10 min of GPU): `scripts/sysid_check.py` (new), `evaluate.py --robot_params`,
+  `eval.sh ... <match> fitted`. Smoke tests passed; the fitted values are applied and checked after build.
+  Results in `results/sysid_check.md`, `results/cross_eval.md` "Fitted robot", Finding 11.
 
 ## Needs a human
-- Sara: T19 fit is done. Still to do on your side: `results/plots/sysid_loss.png` and the step-response plots
-  (not written by the script), Finding 11, then set T19 `done` so T20 can start.
-- Worth a look before T20: the fit removes all blow-ups (22 → 0) but barely changes signal-c RMS (0.335 → 0.324 rad).
-  The coarse best hit the `effort_scale` upper bound (2.0); the fine grid moved to 1.59. Also, the default row here
-  (RMS a 0.091, c 0.335, 22 blow-ups) differs from the harness `--check` (a 0.027, c 0.100, 16/64): different metric
-  or env count? Worth checking which is comparable.
-- Surprising (still open): T22 A (no smoothness penalties) never succeeded in 3,000 iterations, while B (no grasp
-  rewards, 90.2%) beat the full-reward baseline at the same iteration (7.9%). See Finding 6.
-- The 4-vs-8 substep call is close: 19 vs 16 blow-ups, one seed, 64 envs, and 4 substeps is ~18% faster.
-- Sara: watch the 3 T22 clips and add your description to `results/reward_experiment.md` / Finding 6.
-- At ADR max, `variable_gravity` gives g_z ≈ −7.1 to −7.6, not −9.81. FYI.
-- Sara: "What I learned" notes for T17, T23, T18, T25, T25b, T19, T22.
-- Still open from before: watching the 10 Reorient clips.
+- **Git: an unfinished rebase is left on the server.** My `git pull --rebase` conflicted with Sara's T19 note in
+  `notes/log.md`. I resolved it (both sections kept) and staged it, but the agent isn't allowed to run
+  `git rebase --continue`. Please run `git rebase --continue && git push` in `/root/dexterity-physics-engines`.
+  Until then, none of the T20 results below are on GitHub.
+- **T21 gate: T20 numbers** (1,024+ episodes each, `--match_order`; fitted Newton = clamp + 8 substeps + Sara's fit):
+
+  | | Lift | Reorient |
+  |---|---|---|
+  | PhysX → fitted Newton (fidelity check) | **1.0%** (0.5–1.8), abnormal 88.7% | **0.1%** (0.02–0.6), abnormal 70.9% |
+  | PhysX → default Newton (T23) | 0.2%, abnormal 98.5% | 0.0%, abnormal 95.1% |
+  | Newton → fitted Newton (control) | **94.8%** (93.2–96.0) | 65.6% (62.7–68.5) |
+  | Newton → default Newton (T23) | 86.9% (84.8–88.8) | 63.9% (61.0–66.8) |
+  | Newton → PhysX, unchanged (T21 baseline = T23 rows) | 0.0% | 0.0% |
+
+  Hours/$ since 15 Nov: ≈ 7 h ≈ $26 (estimate, see top). Left: ≈ 34 h. T21 stays `blocked` until the planning
+  chat decides the next runs.
+- **Surprising: the fit's "22 → 0 blow-ups" doesn't reproduce.** In T20's held-out run, the same fitted parameters on
+  the same 64 references gave 28 blow-ups, against 26 for the defaults (fit run: 0 vs 22). Many grid points get 0 in
+  both runs (188/343 and 220/343). So blow-up counts seem to vary from run to run by more than the gap between
+  candidates, and the minimum over 343 candidates picks a lucky one. Fitting on episodes 0–9 gives 0 train blow-ups,
+  but the 5/20 held-out signal-c blow-ups stay, the same as the defaults. Suggest a repeatability test before
+  training on this fit: the same params, several rollout calls, different env blocks. Not done (not in PLAN).
+- Step-response check: not sluggish. Mean overshoot PhysX 38.5%, default Newton 44.5%, fitted 44.4%. Rise times
+  are about equal (0.086 / 0.083 / 0.089 s). Steady-state error is 7× PhysX's in both Newton variants (0.014 vs
+  0.002 rad). The worst joint is the thumb (thumb_joint_0 overshoot 41 / 76 / 65%).
+- Still open from before: T22 A/B surprise (Finding 6); the 4-vs-8 substep call is close; ADR-max gravity ≈ −7.1 to
+  −7.6, not −9.81.
+- Sara: set T19 `done` when you're happy; `results/plots/sysid_loss.png`; "What I learned" notes for T17, T23, T18,
+  T25, T25b, T22, T20 (T19's is in); watch the T22 and Reorient clips.

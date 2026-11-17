@@ -102,3 +102,31 @@ config, deterministic policy). Labels in `cross_eval.csv`: `lift_matched`, `reor
   changed.
 - So the original cross-engine cells were confounded by the joint order, but that confound is not what makes transfer
   fail. The gap is elsewhere, in the dynamics (robot drives and joints, or contact). That is what T18–T20 test.
+
+# Fitted robot (T20)
+
+"Fitted Newton" = T19's fixed corrections (finger velocity clamp at ±limit every physics step, `num_substeps` 8)
+plus Sara's fit from `results/sysid_robot.json` on the 16 finger joints: armature 0.0131, damping ×1.149, effort
+limit ×1.591. These values are written after every reset, so they override the task's startup gain randomisation on
+the fingers. The run prints and checks the applied values (all 16 × 256: armature 0.01311, damping 0.1149, effort 0.7955).
+All runs use `--match_order <training engine>`. Settings otherwise as above (final checkpoints, 256 envs, seed 42,
+Play config, deterministic policy). Label `lift_fitted` / `reorient_fitted` in `cross_eval.csv` (`robot_params=` in
+the presets column). The "matched" column is the T23 row with default Newton.
+
+| Task | Trained in → run in | Episodes | Success (95% CI) | abnormal_robot | object_out_of_bound | time_out | Control steps | Matched, default Newton (T23) |
+|---|---|---|---|---|---|---|---|---|
+| Lift | PhysX → fitted Newton | 1,027 | **1.0%** (0.5–1.8) | **88.7%** | 11.3% | 0.0% | 171 | 0.2%, abnormal 98.5%, 92 steps |
+| Lift | Newton → fitted Newton | 1,029 | **94.8%** (93.2–96.0) | 3.4% | 0.5% | 96.1% | 1,440 | 86.9% (84.8–88.8), abnormal 13.6% |
+| Lift | Newton → PhysX (unchanged) | 1,024 | 0.0% (0.0–0.4) | 20.4% | 12.5% | 67.1% | 1,332 | same row (reused) |
+| Reorient | PhysX → fitted Newton | 1,026 | **0.1%** (0.02–0.6) | **70.9%** | 25.2% | 4.0% | 362 | 0.0%, abnormal 95.1%, 118 steps |
+| Reorient | Newton → fitted Newton | 1,024 | **65.6%** (62.7–68.5) | 25.9% | 0.0% | 74.1% | 1,327 | 63.9% (61.0–66.8), abnormal 30.0% |
+| Reorient | Newton → PhysX (unchanged) | 1,026 | 0.0% (0.0–0.4) | 26.8% | 9.9% | 63.3% | 1,238 | same row (reused) |
+
+- **The fidelity check fails: PhysX policies still don't work in fitted Newton** (Lift 1.0%, Reorient 0.1%). Fewer
+  episodes end in `abnormal_robot` (Lift 98.5 → 88.7%, Reorient 95.1 → 70.9%) and episodes last longer (1,024
+  episodes take 171 / 362 control steps instead of 92 / 118). More of them now end with the cube out of bounds
+  (Lift 1.6 → 11.3%, Reorient 5.0 → 25.2%).
+- **Fitting doesn't break Newton's own policies; for Lift it helps.** Lift Newton → fitted Newton 94.8% vs 86.9% with
+  default Newton (the intervals don't overlap), with `abnormal_robot` 13.6 → 3.4%. Reorient 65.6% vs 63.9% (the intervals overlap).
+- Newton → PhysX with nothing changed is identical to T23's matched rows (same checkpoints, flags and engine), so
+  those rows are reused as T21's uncalibrated baseline: 0.0% in both tasks.

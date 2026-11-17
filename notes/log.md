@@ -939,3 +939,45 @@ candidates, about 6 minutes in total.
   refinement then resolved (1.59, inside the range).
 - Next time: fit on a smaller set of the recorded episodes and keep the rest for validation, so I know the fit isn't
   tuned to those particular motions.
+
+## 2026-11-17 16:03 UTC: Finding 11, the fit doesn't survive its checks, and PhysX policies still fail in fitted Newton (T19 fit, T20, server agent)
+
+**The fit (Sara, T19, `results/sysid_robot.json`):** 6³ coarse + 5³ fine grid. Best point: armature 0.0131, damping
+×1.149, effort ×1.591. Over the 64 references: loss 0.208 vs 0.316 at defaults, blow-ups 0 vs 22, RMS a 0.019 vs
+0.091, b 0.049 vs 0.074, c 0.324 vs 0.335. All with the fixed corrections (finger velocity clamp every physics
+step, 8 substeps).
+
+**Check 1, step response (signal a, `results/sysid_check.md`):** the fit leaves the step response almost unchanged.
+Mean over 15 finger joints: rise time PhysX 0.086 s, default Newton 0.083 s, fitted 0.089 s. Overshoot PhysX 38.5%,
+default 44.5%, fitted 44.4%. Steady-state error PhysX 0.002 rad, default and fitted 0.014 rad. The hand is not
+sluggish: fitted Newton overshoots *more* than PhysX, not less. The thumb is the worst joint: thumb_joint_0
+overshoots 41% in PhysX, 76% in default Newton and 65% fitted. thumb_joint_2 has a single reference env, which reset
+at defaults. Plots: `results/plots/sysid_step_{ring_joint_0,thumb_joint_0,ring_joint_1}.png`.
+
+**Check 2, held-out episodes:** the 64 references hold 15 trace episodes. I reran Sara's grid search (her functions
+unchanged, `scripts/sysid_check.py`) on episodes 0–9 (44 reference envs), then tested on 10, 11, 12, 14, 15 (20 envs):
+
+| parameters | train blow-ups (a/b/c) | held-out blow-ups (a/b/c) |
+|---|---|---|
+| default | 16 (7/2/7) | 10 (2/3/5) |
+| full fit (sysid_robot.json) | 18 (5/5/8) | 10 (2/4/4) |
+| best on episodes 0–9 (0.0110, ×1.149, ×1.149) | 0 | 5 (0/0/5) |
+
+- **Surprise: the full fit's "0 blow-ups" does not reproduce.** Here the same parameters on the same 64 references
+  give 28 blow-ups (18 + 10), against 26 for the defaults. In the fit run they gave 0 and 22. Both runs scored the
+  default and the fitted point in their first rollout call (envs 0–127). Many other grid points get 0 blow-ups in
+  both runs (188 of 343 rows in the fit, 220 of 343 on the train envs here). So a blow-up count of 64 references
+  seems to vary from run to run by more than the gap between candidates. Choosing the minimum over 343 candidates
+  then favours a lucky draw. I haven't tested repeatability (same params, repeated calls, different env blocks).
+- The point fitted on 10 episodes keeps all 5 blow-ups on held-out signal c (5 of 20 envs), the same as the defaults.
+
+**Cross-evaluation (`results/cross_eval.md`, "Fitted robot"; 1,024+ episodes, `--match_order`):**
+- PhysX → fitted Newton: Lift **1.0%** (0.5–1.8), Reorient **0.1%** (0.02–0.6), vs 0.2% / 0.0% in default Newton.
+  `abnormal_robot` drops (Lift 98.5 → 88.7%, Reorient 95.1 → 70.9%) and episodes last longer (171 / 362 control steps
+  for ~1,024 episodes, vs 92 / 118), but the policies still fail, now also with the cube out of bounds (11.3% / 25.2%).
+- Newton → fitted Newton (control): Lift **94.8%** (93.2–96.0) vs 86.9% default (`abnormal_robot` 13.6 → 3.4%);
+  Reorient 65.6% vs 63.9% (overlapping intervals). Fitting doesn't break Newton's own policies.
+- Newton → PhysX, unchanged (T21 baseline): T23's matched rows, 0.0% in both tasks.
+
+So the calibrated simulator fails the fidelity check. The fit removes part of the robot blow-ups in closed loop,
+not the gap.

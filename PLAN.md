@@ -435,7 +435,7 @@ design, randomisation and distillation (DeepMind, Humanoid, Machenta Robot Learn
   Training wrapper `scripts/train_clamped.py`. Waiting for Sara's fit.
 
 ### T20 · Check the fitted robot, then cross-evaluate with it (eval only)
-- status: todo
+- status: done
 - why: fidelity check of the calibrated simulator (PhysX is the "real robot", see Answers from humans 16 Nov 14:05).
   Does a policy that works on the real robot also work in the calibrated Newton, with no retraining? Also run the
   Newton-trained policies in PhysX with nothing changed, as the uncalibrated sim-to-real baseline for T21.
@@ -462,7 +462,10 @@ design, randomisation and distillation (DeepMind, Humanoid, Machenta Robot Learn
   - Newton policies in PhysX, unchanged (baseline for T21; reuse T23's matched-order rows if they're identical setups)
 - add the rows to `results/cross_eval.csv` with label `reorient_fitted` / `lift_fitted`, a "Fitted robot" table in
   `results/cross_eval.md`, and "Finding 11" in `notes/log.md` (the fit, the checks, the cross-evaluation). Then T21's gate.
-- result:
+- result: step response barely changed (overshoot PhysX 38.5%, default 44.5%, fitted 44.4%; not sluggish). Held-out:
+  the full fit's 0 blow-ups don't reproduce (28 vs default 26 when re-run); fit on 10 episodes → 0 train, 5/20 held-out c.
+  PhysX → fitted Newton: Lift 1.0%, Reorient 0.1% (abnormal_robot 88.7% / 70.9%). Newton → fitted Newton: Lift 94.8%
+  (vs 86.9%), Reorient 65.6% (vs 63.9%). Newton → PhysX = T23 rows, 0%. `results/sysid_check.md`, `results/cross_eval.md`, Finding 11.
 
 ### T21 · Gate: stop and ask
 - status: blocked
@@ -523,3 +526,5 @@ design, randomisation and distillation (DeepMind, Humanoid, Machenta Robot Learn
 - 2026-11-16 16:35 UTC: T22 B finished normally (model_2999, 0 resumes), backed up; evals started: B in PhysX (running), T1 baseline in Newton (done, 0.0%). T19: per-substep clamp smoke failed again after a fix (keep the pre-clamp graph alive), so 2/2 attempts used; `--no_clamp` smoke passes. Next: the per-physics-step fallback from T19 step 1.
 - 2026-11-16 16:31 UTC: T22 B-in-PhysX eval done (90.2%); started the baseline `model_3000.pt` in PhysX eval. T19: switched `sysid_harness.py` to the per-physics-step clamp (PLAN fallback); 8-env smoke passed (c: 1/8 abnormal_robot vs 3/8 unclamped); started the 64-env `--check`.
 - 2026-11-16 17:00 UTC: T22 A finished normally (0 resumes), backed up (by the previous wake-up, committed now); evals A PhysX/Newton 0.0%; recorded the 3 clips (with `--out` names); wrote `results/reward_experiment.md` + Finding 6; T22 `done`. T19: 64-env checks at 8/4/2 substeps, wrote `scripts/train_clamped.py` (smoke OK), speed runs 2/4/8; chose 8 substeps (`results/sysid_settings.md`); T19 `blocked` for Sara's fit.
+- 2026-11-17 15:56 UTC: T20 started: wrote `scripts/sysid_check.py` (step 1: step response + held-out grid search, Sara's functions imported unchanged), `evaluate.py --robot_params` and `eval.sh ... <match> fitted`; both smoke tests passed (applied values checked). Running: `sysid_check` (1,024 envs) and 3 fitted evals (Reorient P→N, Lift P→N, Reorient N→N); Lift N→N next. Newton→PhysX unchanged reuses T23's matched rows (identical setup).
+- 2026-11-17 16:03 UTC: T20 done: sysid_check and all 4 fitted evals finished without errors; wrote `results/sysid_check.md`, cross_eval.md "Fitted robot", Finding 11. T21 gate reported in STATUS.md (T21 stays `blocked`).

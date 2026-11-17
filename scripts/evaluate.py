@@ -80,6 +80,14 @@ parser.add_argument(
     type=str,
     default=os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "results", "joint_order.json"),
 )
+parser.add_argument(
+    "--robot_params",
+    type=str,
+    default="",
+    help="T20 'fitted Newton' (Newton only): a sysid_robot.json (scripts/sysid_fit.py). Applies all three of: the "
+    "per-physics-step finger velocity clamp, num_substeps from the json (8), and the json's `best` finger armature / "
+    "damping_scale / effort_scale, re-applied after every reset (same calls as sysid_harness.py _apply_params).",
+)
 cli_args.add_rsl_rl_args(parser)
 add_launcher_args(parser)
 args_cli, remaining_args = setup_preset_cli(parser)
@@ -146,6 +154,93 @@ def _check_match_order(u_env, order: dict) -> None:
     print("[EVAL] match_order: all resolved lists equal the training engine's lists")
 
 
+def _t(x) -> torch.Tensor:
+    return x.torch if hasattr(x, "torch") else x
+
+
+def _install_fitted_robot(u_env, fit: dict) -> dict:
+    """T20 'fitted Newton': velocity clamp every physics step + fitted finger params after every reset.
+
+    The clamp and the parameter writes are the same calls as scripts/sysid_harness.py (apply_fixed_target,
+    _apply_params). The task's robot events stay on; the startup actuator-gain randomisation is overridden on the
+    finger joints because the fitted damping (nominal x damping_scale) is written after every reset. Nominal finger
+    damping comes from that event term's stored defaults (else the current values); nominal effort limit from the
+    articulation at build time (no event changes it).
+    """
+    robot = u_env.scene["robot"]
+    dev = u_env.device
+    names = list(robot.joint_names)
+    finger_ids = [i for i, nm in enumerate(names) if not nm.startswith("iiwa7")]
+    assert len(finger_ids) == 16, names
+    best = fit["best"]
+    arm, d_scale, e_scale = float(best["armature"]), float(best["damping_scale"]), float(best["effort_scale"])
+
+    nom_damping = None
+    with contextlib.suppress(Exception):
+        term = u_env.event_manager.get_term_cfg("joint_stiffness_and_damping").func
+        nom_damping = term.default_joint_damping.clone().float()[:, finger_ids]
+    src = "event term defaults"
+    if nom_damping is None:
+        nom_damping, src = _t(robot.data.joint_damping).clone().float()[:, finger_ids], "articulation (no event term)"
+    nom_effort = _t(robot.data.joint_effort_limits).clone().float()[:, finger_ids]
+    damping = (nom_damping * d_scale).contiguous()
+    effort = (nom_effort * e_scale).contiguous()
+    armature = torch.full_like(damping, arm)
+
+    def apply(env_ids=None):
+        if env_ids is None:
+            ids, sl = None, slice(None)
+        else:
+            ids = torch.as_tensor(env_ids, device=dev, dtype=torch.long)
+            if ids.numel() == 0:
+                return
+            sl = ids
+        robot.write_joint_armature_to_sim_index(armature=armature[sl].contiguous(), joint_ids=finger_ids, env_ids=ids)
+        robot.write_joint_damping_to_sim_index(damping=damping[sl].contiguous(), joint_ids=finger_ids, env_ids=ids)
+        robot.write_joint_effort_limit_to_sim_index(limits=effort[sl].contiguous(), joint_ids=finger_ids, env_ids=ids)
+
+    orig_reset_idx = u_env._reset_idx
+
+    def _reset_idx(env_ids, *a, **kw):
+        res = orig_reset_idx(env_ids, *a, **kw)
+        apply(env_ids)
+        return res
+
+    u_env._reset_idx = _reset_idx
+    apply(None)
+
+    # velocity clamp on the finger joints, once per physics step, after the action term writes its targets
+    vlim = _t(robot.data.joint_vel_limits).clone().float()
+    fmask = torch.zeros(len(names), dtype=torch.bool, device=dev)
+    fmask[finger_ids] = True
+    term = u_env.action_manager.get_term("action")
+    orig_apply = term.apply_actions
+
+    def apply_actions():
+        orig_apply()
+        v = _t(robot.data.joint_vel).clone().float()
+        robot.write_joint_velocity_to_sim_index(velocity=torch.where(fmask, torch.clamp(v, -vlim, vlim), v))
+
+    term.apply_actions = apply_actions
+
+    got = {
+        "armature": _t(robot.data.joint_armature).float()[:, finger_ids],
+        "damping": _t(robot.data.joint_damping).float()[:, finger_ids],
+        "effort_limit": _t(robot.data.joint_effort_limits).float()[:, finger_ids],
+    }
+    info = {k: (float(v.min()), float(v.max())) for k, v in got.items()}
+    print(f"[EVAL] robot_params: fitted {best['armature']:.4f} / x{d_scale:.3f} / x{e_scale:.3f}; nominal finger damping "
+          f"from {src}: mean {float(nom_damping.mean()):.4f}, effort mean {float(nom_effort.mean()):.4f}")
+    print(f"[EVAL] robot_params: applied on 16 finger joints x {u_env.num_envs} envs (min, max): {info}; "
+          f"velocity clamp at +-limit (finger limits {float(vlim[:, finger_ids].min()):.3f}..."
+          f"{float(vlim[:, finger_ids].max()):.3f} rad/s) every physics step; "
+          f"num_substeps {getattr(u_env.cfg.sim.physics, 'num_substeps', '?')}")
+    for k, want in (("armature", armature), ("damping", damping), ("effort_limit", effort)):
+        if not torch.allclose(got[k], want, rtol=1e-4, atol=1e-6):
+            raise RuntimeError(f"robot_params: {k} not applied: got {info[k]}, want {float(want.min())}..{float(want.max())}")
+    return info
+
+
 @hydra_task_config(args_cli.task, args_cli.agent)
 def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agent_cfg: RslRlBaseRunnerCfg):
     with launch_simulation(env_cfg, args_cli):
@@ -162,9 +257,19 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
         if args_cli.match_order:
             order = _apply_match_order(env_cfg, args_cli.match_order, args_cli.order_json)
 
+        fit = None
+        if args_cli.robot_params:
+            with open(args_cli.robot_params) as f:
+                fit = json.load(f)
+            if not hasattr(env_cfg.sim.physics, "num_substeps"):
+                raise RuntimeError(f"--robot_params is Newton only; physics cfg is {type(env_cfg.sim.physics)}")
+            env_cfg.sim.physics.num_substeps = int(fit.get("num_substeps", 8))
+
         env = gym.make(args_cli.task, cfg=env_cfg, render_mode=None)
         if order is not None:
             _check_match_order(env.unwrapped, order)
+        if fit is not None:
+            _install_fitted_robot(env.unwrapped, fit)
         env = RslRlVecEnvWrapper(env, clip_actions=agent_cfg.clip_actions)
 
         print(f"[EVAL] Loading checkpoint: {checkpoint}")
@@ -243,6 +348,8 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
             "seconds": round(elapsed, 1),
             "presets": PRESET_ARGS,
         }
+        if args_cli.robot_params:  # recorded in the presets column (no new CSV column: the header isn't rewritten)
+            row["presets"] = f"{PRESET_ARGS} robot_params={os.path.basename(args_cli.robot_params)}"
         for name, count in sorted(terminations.items()):
             row[f"term_{name}"] = round(count / episodes, 4) if episodes else ""
 

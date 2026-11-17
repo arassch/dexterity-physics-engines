@@ -17,10 +17,18 @@ if [[ "${1:-}" == "smoke" ]]; then SMOKE=1; shift; fi
 TASK_SHORT="${1:?usage: eval.sh [smoke] <lift|reorient> <train_engine> <eval_engine> <checkpoint.pt> [episodes]}"
 TRAIN="${2:?train engine}"; EVAL="${3:?eval engine}"; CKPT="${4:?checkpoint}"; EPISODES="${5:-1024}"
 # T23: optional last argument physx|newton = --match_order <engine> (joints/bodies matched by name to that engine).
+# T20: optional last argument `fitted` (after the match engine) = "fitted Newton" (evaluate.py --robot_params
+# results/sysid_robot.json; label <task>_fitted, log name ..._fitted). E.g.
+#   scripts/eval.sh reorient physx newton <ckpt> 1024 physx fitted
+FITTED=0
+if [[ "${@: -1}" == "fitted" ]] && (( $# >= 6 )); then FITTED=1; set -- "${@:1:$(($# - 1))}"; fi
 MATCH=""
 if [[ "${@: -1}" =~ ^(physx|newton)$ ]] && (( $# >= 5 )); then
   MATCH="${@: -1}"
   [[ "$EPISODES" == "$MATCH" ]] && EPISODES=1024
+fi
+if (( FITTED )) && [[ -z "$MATCH" || "$EVAL" != "newton" ]]; then
+  echo "fitted needs the match engine before it and eval engine newton" >&2; exit 1
 fi
 
 case "$TASK_SHORT" in
@@ -40,6 +48,10 @@ CKPT="$(cd "$(dirname "$CKPT")" && pwd)/$(basename "$CKPT")"
 NUM_ENVS=256; CSV="$REPO/results/cross_eval.csv"; NAME="eval_${TASK_SHORT}_${TRAIN}_in_${EVAL}"
 LABEL="$TASK_SHORT"; MATCH_ARGS=()
 if [[ -n "$MATCH" ]]; then LABEL="${TASK_SHORT}_matched"; NAME="${NAME}_matched"; MATCH_ARGS=(--match_order "$MATCH"); fi
+if (( FITTED )); then
+  LABEL="${TASK_SHORT}_fitted"; NAME="eval_${TASK_SHORT}_${TRAIN}_in_${EVAL}_fitted"
+  MATCH_ARGS+=(--robot_params "$REPO/results/sysid_robot.json")
+fi
 if (( SMOKE )); then NUM_ENVS=16; EPISODES=32; CSV="$REPO/results/cross_eval_smoke.csv"; NAME="${NAME}_smoke"; fi
 
 mkdir -p "$RUN_DIR" "$REPO/results"
