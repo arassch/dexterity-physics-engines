@@ -434,19 +434,34 @@ design, randomisation and distillation (DeepMind, Humanoid, Machenta Robot Learn
   see `results/sysid_settings.md`. `--check` at 8: RMS a 0.027, b 0.022, c 0.100 rad, c abnormal_robot 16/64.
   Training wrapper `scripts/train_clamped.py`. Waiting for Sara's fit.
 
-### T20 · Cross-evaluate with the fitted robot (eval only)
+### T20 · Check the fitted robot, then cross-evaluate with it (eval only)
 - status: todo
 - why: fidelity check of the calibrated simulator (PhysX is the "real robot", see Answers from humans 16 Nov 14:05).
   Does a policy that works on the real robot also work in the calibrated Newton, with no retraining? Also run the
   Newton-trained policies in PhysX with nothing changed, as the uncalibrated sim-to-real baseline for T21.
-- requires: T19 `done` (set by Sara after her fit).
-- always run with `--match_order <train engine>` (T23).
-- add a `--robot_params results/sysid_robot.json` option to `scripts/evaluate.py` that applies the fitted parameters after
-  reset (the same calls as T19). Don't change anything it measures.
-- run 1,024 episodes each: Reorient PhysX policy in fitted Newton, Lift PhysX policy in fitted Newton, and Newton → Newton
-  with fitted parameters (a control: does fitting break Newton's own policy?).
+- requires: `results/sysid_robot.json` in the repo (Sara's fit, 17 Nov 15:45: armature 0.0131, damping_scale 1.149,
+  effort_scale 1.591 on the 16 finger joints; 0 blow-ups vs 22 with defaults). T19 itself stays `running` until Sara
+  sets it `done`; don't wait for that.
+- **"fitted Newton" always means all three together:** the per-physics-step finger velocity clamp, `num_substeps` 8,
+  and the parameters from `results/sysid_robot.json` (`best`), applied to the finger joints after every reset with the
+  same calls as `scripts/sysid_harness.py` (`_apply_params`). Robot randomisation events off is NOT part of it: keep the
+  task's events, but re-apply the fitted values after each reset so they win. Check and print the applied values once.
+- step 1, sanity checks of the fit (harness only, a few minutes):
+  1. step response: with `scripts/sysid_harness.py`, roll out PhysX vs default Newton vs fitted Newton on signal (a);
+     per finger joint, rise time (10–90 %) and overshoot. Table in `results/sysid_check.md`, and plots for 3 joints
+     (`results/plots/sysid_step_<joint>.png`). Flag it in STATUS.md if fitted overshoot is far below PhysX's (a
+     sluggish hand).
+  2. held-out episodes: signal (c) is built from the T17 trace episodes. Rerun Sara's grid search
+     (`scripts/sysid_fit.py`, unchanged functions) using only references from 10 of the 15 episodes, then count
+     blow-ups of that best point on the other 5. Report both in `results/sysid_check.md`. If you need a harness option
+     to restrict references, add it without changing the defaults.
+- step 2, cross-evaluation: add `--robot_params results/sysid_robot.json` (applies all three, as above) to
+  `scripts/evaluate.py`; always `--match_order <train engine>` (T23). 1,024 episodes each:
+  - Reorient PhysX policy in fitted Newton; Lift PhysX policy in fitted Newton (the fidelity checks)
+  - Newton → Newton with fitted Newton, both tasks (control: does fitting break Newton's own policy?)
+  - Newton policies in PhysX, unchanged (baseline for T21; reuse T23's matched-order rows if they're identical setups)
 - add the rows to `results/cross_eval.csv` with label `reorient_fitted` / `lift_fitted`, a "Fitted robot" table in
-  `results/cross_eval.md`, and "Finding 5" in `notes/log.md`.
+  `results/cross_eval.md`, and "Finding 11" in `notes/log.md` (the fit, the checks, the cross-evaluation). Then T21's gate.
 - result:
 
 ### T21 · Gate: stop and ask
