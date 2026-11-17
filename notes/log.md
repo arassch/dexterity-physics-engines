@@ -907,3 +907,35 @@ targets (PhysX's own 37–41% finger overshoot is part of what Newton should cop
   table (e.g. fewest blow-ups, then best tracking), with a blow-ups-vs-tracking plot.
 - **Checks before believing it:** step-response rise time and overshoot of fitted Newton vs PhysX; blow-ups on
   held-out trace episodes (fit on ~10 of the 15, test on the rest); then T20, the PhysX policy in fitted Newton.
+
+## 2026-11-17 15:55 UTC · What I learned: T19, the system-ID fit (Sara)
+
+From writing `scripts/sysid_fit.py` (make_grid, refine_grid, score_candidate, choose_best) and its first run:
+default Newton 22 blow-ups → fitted 0 (armature 0.0131, damping ×1.149, effort ×1.591 on the 16 finger joints), with
+lower tracking error on all three signals (a 0.091 → 0.019, b 0.074 → 0.049, c 0.335 → 0.324). 12 s per 16
+candidates, about 6 minutes in total.
+
+- We calibrate the simulator (Newton) against the "real robot" (PhysX), so the reference is what the real hand
+  actually does, including its overshoot and lag, not the targets it was given. A simulator that tracks targets better
+  than the real robot is a worse simulator.
+- No policy runs during the fit: both hands get the same recorded target sequences (open loop). With a policy in the
+  loop, differences in observations would change its commands, and we couldn't tell physics differences from policy
+  reactions.
+- The loss compares both position and velocity. Velocity is where the engines differ (Newton's fingers overshoot the
+  speed limit and blow up); position catches offsets in where the finger ends up. Matching both over time constrains
+  the dynamics (acceleration) indirectly.
+- Each is divided by a natural scale (0.3 rad of motion, the 6.28 rad/s velocity limit) before combining, because they
+  have different units and sizes; otherwise velocity would dominate.
+- The blow-up penalty is graded by time (early blow-ups cost more, so the search can tell "nearly survived" from
+  "failed at once"), and measured against one fixed yardstick taken from the default run. My first version took the
+  yardstick from each candidate's own survivors, so the same blow-up cost more in a candidate whose survivors tracked
+  badly; a fixed yardstick makes losses comparable between candidates.
+- Surprise: the fit raised the effort limit (×1.59) instead of slowing the hand down. Likely reason (hypothesis, not
+  yet tested): MuJoCo clips the *sum* of the PD drive's spring and damping forces at the effort limit, so when a fast
+  finger saturates, its damping is clipped away exactly when it needs braking, and it runs away. More headroom keeps
+  the damping working. The substep count (8) and velocity clamp were fixed before the fit, not part of it.
+- With only three parameters, a log-spaced grid (6 × 6 × 6, then a finer grid around the best point) beat CMA-ES:
+  it shows the whole landscape, and the coarse best landing on the effort bound (2.0) was a visible warning that the
+  refinement then resolved (1.59, inside the range).
+- Next time: fit on a smaller set of the recorded episodes and keep the rest for validation, so I know the fit isn't
+  tuned to those particular motions.
