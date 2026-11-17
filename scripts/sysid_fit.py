@@ -135,7 +135,7 @@ def choose_best(rows):
 
     The design: fewest blow-ups first, then the lowest loss among those. Return the chosen row.
     """
-    raise NotImplementedError("SARA: choose_best")
+    return min(rows, key=lambda r: (r["blowups"], r["loss"]))
 
 
 # ---------------------------------------------------------------------------------------------- plumbing
