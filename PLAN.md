@@ -497,6 +497,41 @@ design, randomisation and distillation (DeepMind, Humanoid, Machenta Robot Learn
   for the T21 gate. Don't start T21.
 - result: measured, `results/sysid_repeat.md`, Finding 12. The rollout call number dominates: call 1 gives +25–30 blow-ups to every candidate; from call 3 on default 5, full fit 0, T20 best ~5, zero point ~0 (block std ≈ 1; nothing bit-identical). Averaged refit NOT run: the `SYSID_REPEATS=4 ...` env-prefixed command is outside the agent's allowed commands, and it would still score the default in call 1 (see STATUS.md).
 
+### T26b · Freeze ADR at max, then redo the reference, the repeat test and the fit · before T21
+- status: todo
+- why (planning chat, from T26): the "call-1 effect" is most likely **ADR demotion**. The Play configs start ADR at
+  `max_difficulty` (10) but don't set `promotion_only`, so `DifficultyScheduler` lowers the difficulty by 1 on every
+  reset of an env that didn't succeed (`mdp/curriculums.py`). With the cube parked nothing ever succeeds, so each
+  signal reset (and each blow-up reset) lowers it; within ~2 calls it reaches 0. The difficulty scales
+  `variable_gravity` from 0 to −9.81 (`adr_curriculum.py`) and the observation noises. So call 1 ran with gravity
+  (≈ −7.3, as T25b saw) and calls ≥ 3 ran with **no gravity**: every grid point of the fit was scored without gravity,
+  while the default and the penalty level came from call 1 with gravity. The PhysX reference recorded by
+  `step_response.py --adr max` drifted the same way across signals a → b → c.
+- requires: nothing on the GPU.
+- step 1, verify: in `sysid_harness.py`, `step_response.py` and `sysid_repeat.py`, print at the start of every signal
+  the ADR difficulty (mean and min/max over envs; `DifficultyScheduler.current_adr_difficulties` / `difficulty_frac`)
+  and the sim gravity. Run `sysid_repeat.py` once as in T26 (2 calls are enough) and confirm the drift and the gravity
+  change. Write the numbers in `results/sysid_repeat.md` (new section "ADR drift").
+- step 2, freeze: add `--freeze_adr` (default **on** in these three scripts) that sets
+  `env_cfg.curriculum.adr.params["promotion_only"] = True` (with init = max, the difficulty then stays at max) and check
+  the printed difficulty and gravity stay constant over all signals and calls.
+- step 3, redo with ADR frozen at max:
+  1. re-record the PhysX reference: `results/sysid/t19_ref_physx_adrmax.npz` (keep the old file; commit the new one)
+  2. `sysid_repeat.py` (as T26, 5 calls): is there still a call effect? within/between-call noise?
+  3. Sara's fit, unchanged functions, with averaging only if step 3.2 shows noise worth averaging:
+     `scripts/run_isaac.sh sysid_fit_adrmax sysid_fit.py --headless --num_envs 1024 --ref <new npz> --out <repo>/results/sysid_robot_adrmax.json [--repeats 4] physics=newton_mjwarp presets=cube`
+     (`--repeats` and `--out` are now harness flags, so no env vars are needed)
+  4. `sysid_check.py` with the new reference and new fit (step response, held-out episodes).
+- step 4, the evaluations: the same demotion happens in `evaluate.py` with the Play config: cells where the policy fails
+  (all away cells) drift towards difficulty 0 (no gravity, no noise) during the 1,024 episodes; home cells stay near
+  max. Log the mean difficulty at the end of each eval from now on. Add `--freeze_adr` to `evaluate.py` (default **off**,
+  so earlier rows stay comparable) and rerun just two cells with it on, Reorient PhysX → fitted Newton (old fit) and
+  PhysX → PhysX, to see how much the drift mattered.
+- on done: "Finding 13" in `notes/log.md` (the mechanism, the evidence, which earlier results it affects and how),
+  and in STATUS.md under "Needs a human": old fit vs ADR-max fit, blow-ups default vs fit with ADR frozen, and the two
+  eval cells. Don't start T21.
+- result:
+
 ### T21 · Gate: stop and ask
 - status: blocked
 - after T20, write under "Needs a human" in STATUS.md: the T20 numbers, hours and $ used since 15 Nov, and the hours left.

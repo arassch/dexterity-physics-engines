@@ -66,6 +66,8 @@ parser.add_argument("--ref", type=str, default=os.path.expanduser("~/runs/step_r
                     help="PhysX recording from step_response.py --adr max --signals abc")
 parser.add_argument("--seed", type=int, default=42)
 parser.add_argument("--check", action="store_true", help="roll out default params, print RMS error and resets")
+parser.add_argument("--repeats", type=int, default=0, help="sysid_fit.py: blocks of 64 envs per candidate (0 = env SYSID_REPEATS or 1)")
+parser.add_argument("--out", type=str, default="", help="sysid_fit.py: output json (default results/sysid_robot.json)")
 add_launcher_args(parser)
 args_cli, remaining_args = setup_preset_cli(parser)
 sys.argv = [sys.argv[0]] + remaining_args

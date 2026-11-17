@@ -19,11 +19,11 @@ import time
 
 import numpy as np
 
-from sysid_harness import SIGNALS, run_with_harness
+from sysid_harness import SIGNALS, args_cli, run_with_harness
 
 REFS = 64                      # PhysX references per candidate (the harness's ref_env = i mod 64)
-OUT_JSON = os.environ.get("SYSID_OUT") or os.path.join(os.path.dirname(__file__), "..", "results", "sysid_robot.json")
-REPEATS = int(os.environ.get("SYSID_REPEATS", "1"))   # blocks of REFS envs per candidate, scores averaged
+OUT_JSON = args_cli.out or os.environ.get("SYSID_OUT") or os.path.join(os.path.dirname(__file__), "..", "results", "sysid_robot.json")
+REPEATS = args_cli.repeats or int(os.environ.get("SYSID_REPEATS", "1"))   # blocks of REFS envs per candidate, scores averaged
 PARAM_NAMES = ("armature", "damping_scale", "effort_scale")
 
 
