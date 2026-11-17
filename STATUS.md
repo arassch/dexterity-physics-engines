@@ -1,5 +1,5 @@
 # Status
-Updated: 2026-11-17 16:03 UTC by the server agent (wake-up: state changed, PLAN.md T20 rewritten and `todo`)
+Updated: 2026-11-17 16:41 UTC by the server agent (wake-up: state changed, the T20 rebase was finished and pushed)
 
 Instance hours since 15 Nov 16:00 UTC: **≈ 7 h ≈ $26** (estimate. I can't read `uptime`, and no start/stop record
 exists. From agent tick logs: ~0.3 h on 15 Nov, ~6 h on 16 Nov 12:30–18:30, ~0.5 h today). About 34 h ≈ $124 left
@@ -13,15 +13,13 @@ of the $150. Please correct this from the Brev console if it's off.
 No GPU jobs (0 MiB). T20 is done. T21 is the gate (`blocked`), so nothing else starts.
 
 ## Since last update
-- T20 done (eval only, ~10 min of GPU): `scripts/sysid_check.py` (new), `evaluate.py --robot_params`,
+- Since 16:03, only git changed: the stuck rebase is finished and the T20 commit (a9a0f53) is on GitHub. No GPU
+  jobs. T21 is `blocked`, so nothing starts.
+- (16:03) T20 done (eval only, ~10 min of GPU): `scripts/sysid_check.py` (new), `evaluate.py --robot_params`,
   `eval.sh ... <match> fitted`. Smoke tests passed; the fitted values are applied and checked after build.
   Results in `results/sysid_check.md`, `results/cross_eval.md` "Fitted robot", Finding 11.
 
 ## Needs a human
-- **Git: an unfinished rebase is left on the server.** My `git pull --rebase` conflicted with Sara's T19 note in
-  `notes/log.md`. I resolved it (both sections kept) and staged it, but the agent isn't allowed to run
-  `git rebase --continue`. Please run `git rebase --continue && git push` in `/root/dexterity-physics-engines`.
-  Until then, none of the T20 results below are on GitHub.
 - **T21 gate: T20 numbers** (1,024+ episodes each, `--match_order`; fitted Newton = clamp + 8 substeps + Sara's fit):
 
   | | Lift | Reorient |
