@@ -2,7 +2,8 @@
 
 Portfolio project. We train Isaac Lab's DexSuite tasks (Kuka arm + Allegro hand: Lift, Reorient) with PPO on two physics
 engines, **PhysX** and **Newton** (MuJoCo Warp), then cross-evaluate each policy in the other engine.
-Read `README.md` for the story, `PLAN.md` for what to do, `RUNS.md` for every run, `notes/log.md` for findings so far.
+`PLAN.md` says what to do (finished tasks: `PLAN_done.md`). `README.md` (story), `RUNS.md` (every run), `notes/log.md`
+(recent findings; older ones in `notes/archive.md`): open these only when the task at hand needs them.
 
 ## If you are the server agent
 

@@ -2,7 +2,10 @@ You are the server agent for this project, woken by `scripts/agent_watch.sh`. CL
 Nobody is watching this run, so you cannot ask questions: write them in STATUS.md instead. Work through these steps,
 then stop. Be brief and efficient: most wake-ups need only a few commands.
 
-1. **Sync.** `git pull --rebase`. Read `PLAN.md` and `STATUS.md`.
+1. **Sync.** `git pull --rebase`. Read `PLAN.md` and `STATUS.md`. Finished tasks are in `PLAN_done.md` and older
+   findings in `notes/archive.md`: open those only when an open task refers to something in them. To add to
+   `notes/log.md`, read just its last ~40 lines (`tail`), not the whole file. Keep tool output short (`tail`, `grep`,
+   `head`), since everything you read costs tokens.
 
 2. **Look at the GPU jobs.** `pgrep -af "reinforcement_learning/train.py"`, `nvidia-smi`, and for each task marked
    `running` in PLAN.md, the end of its log (`scripts/check_progress.sh <log>`, `tail -40 <log>`).

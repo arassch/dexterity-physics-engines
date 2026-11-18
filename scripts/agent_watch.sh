@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Event-driven supervisor for the server agent. Cheap checks every INTERVAL seconds (no Claude usage);
-# wakes Claude (agent_tick.sh) only when something changes, or every HEARTBEAT seconds regardless.
+# wakes Claude (agent_tick.sh) only when something changes, or every HEARTBEAT seconds while a GPU job is running
+# (no heartbeat when nothing runs: plan changes, finished/crashed jobs already trigger a wake-up).
 #
 # Start:  nohup ~/dexterity-physics-engines/scripts/agent_watch.sh > ~/runs/agent/watch.log 2>&1 &
 # Stop:   pkill -f agent_watch.sh
@@ -11,7 +12,7 @@ set -uo pipefail
 REPO="${REPO:-$HOME/dexterity-physics-engines}"
 STATE="${STATE:-$HOME/runs/agent}"
 INTERVAL="${INTERVAL:-300}"      # 5 minutes between cheap checks
-HEARTBEAT="${HEARTBEAT:-3600}"   # wake Claude at least every hour
+HEARTBEAT="${HEARTBEAT:-3600}"   # while jobs run, wake Claude at least every hour (progress, early-stop checks)
 mkdir -p "$STATE"
 cd "$REPO" || exit 1
 
@@ -47,7 +48,7 @@ while true; do
   now=$(date +%s)
   if [[ "$cur" != "$last" ]]; then
     wake "state changed. before: {$last} now: {$cur}"
-  elif (( now - last_tick >= HEARTBEAT )); then
+  elif [[ "$cur" != *"runs=[]"* ]] && (( now - last_tick >= HEARTBEAT )); then
     wake "heartbeat"
   fi
   sleep "$INTERVAL"
