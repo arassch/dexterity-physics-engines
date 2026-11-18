@@ -204,3 +204,21 @@ Step 2b: 64-env, 5-iteration smoke run with `env.rewards.good_finger_contact.wei
 env.rewards.contact_count.weight=0` (`~/runs/t21c_smoke.log`). Both terms show weight 0 in the reward table and 0.0000
 in every iteration, and it ended normally (7.6 s). Started T21c at 17:04 (`2026-11-18_17-04-21_corr_nograsp`) and T21d
 (`--finger_dr`) at 17:05 (`2026-11-18_17-05-09_corr_dr_nograsp`). Both logs show the two weights at 0.
+
+## 2026-11-18 19:05 UTC: T21c finished; corrected Newton learns Lift once the grasp rewards are off (server agent)
+
+T21c (corrected Newton, clamp + 8 substeps, no grasp rewards, 3,000 iterations) ended normally after 6,903 s, no
+crash, 0 resumes. Training-time numbers (with exploration noise), log `~/runs/lift_newton_corr_nograsp_3000.log`:
+
+| iteration | success | abnormal_robot | ADR |
+|---|---|---|---|
+| 1,000 | 0.00 | 0.023 | 0.000 |
+| 2,000 | 0.31 | 0.030 | 0.021 |
+| 3,000 (2999) | 0.90 | 0.077 | 0.977 |
+
+Final mean reward 21.84, `position_tracking` 0.897, `success` term 2.88, action std 0.79, 2.51 s/iter (shared GPU).
+So the same corrected physics where T21a stayed at 0.00 for 8,000 iterations reaches 0.90 in 3,000 once
+`good_finger_contact` and `contact_count` are zeroed, the same pattern as T22 B in PhysX (0.93 at 3,000). ADR went from
+0.02 to 0.98 between 2k and 3k, and abnormal_robot rose with it (0.03 → 0.08). Backed up
+`checkpoints/lift_newton_corr_nograsp/model_2999.pt`, configs, last 60 log lines. T21d (finger DR) is at ~2,095 / 3,000,
+success 0.05–0.12, ADR 0.004.
