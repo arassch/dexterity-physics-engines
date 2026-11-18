@@ -43,6 +43,12 @@ design, randomisation and distillation (DeepMind, Humanoid, Machenta Robot Learn
 
 ## Answers from humans
 
+- 2026-11-18 17:05 (Sara, planning chat): T21a/T21b never lifted, so change course. Stop T21b now (pid 19261, check
+  with `ps` first), back up its last milestone checkpoint like a crash (`checkpoints/lift_newton_corr_dr/`, configs,
+  last 60 log lines), and don't evaluate T21a or T21b: policies that never lift say nothing about transfer. Then run
+  T21 step 2b below (corrected Newton **without the two grasp rewards**, as T22 B did in PhysX). That reward change is
+  Sara's decision and applies only to step 2b.
+
 - 2026-11-18 14:05 (planning chat): yes, run T21a and T21b to 8,000 regardless. 0.00 success at 3,700 is normal
   for Lift in Newton: the original run (T2) was also at 0 at 3,250 and reached 0.40 by 4,500 (notes/archive.md,
   T4 table). Mention in Finding 14 where each run's success first rises above 0.
@@ -191,6 +197,21 @@ refers to it. Index:
   - **T21b**: corrected Newton + `--finger_dr`
   Start both together (about 1.3 s/iteration alone at 8 substeps, so roughly 3–5 h side by side). Same crash policy
   and backups as other training runs (`checkpoints/lift_newton_corr/`, `checkpoints/lift_newton_corr_dr/`).
+- **result of step 2** (Wed 18 Nov): T21a 0.00 training success at every checkpoint to 8,000 (touches the cube, never
+  lifts); T21b 0.00 at ~5,000, stopped by Sara's 17:05 decision. Not evaluated.
+- **step 2b**, train again without the grasp rewards (Sara, 17:05). Same setup as step 2 (Lift, 512 envs, seed 42,
+  `presets=cube`, Newton, clamp + `--num_substeps 8`, normal ADR) but **3,000 iterations** and the two T22 B overrides
+  `env.rewards.good_finger_contact.weight=0 env.rewards.contact_count.weight=0` appended to the command:
+  - **T21c**: `scripts/run_isaac.sh lift_newton_corr_nograsp_3000 train_clamped.py --num_substeps 8 --task
+    Isaac-Dexsuite-Kuka-Allegro-Lift-v0 --headless --num_envs 512 physics=newton_mjwarp presets=cube --seed 42
+    agent.max_iterations=3000 --run_name corr_nograsp env.rewards.good_finger_contact.weight=0
+    env.rewards.contact_count.weight=0`
+  - **T21d**: the same plus `--finger_dr`, `--run_name corr_dr_nograsp`, log `lift_newton_corr_dr_nograsp_3000`.
+  Start T21d at least a minute after T21c. Smoke-check first (5 iterations, 64 envs, both overrides): the log's
+  reward table must show those two terms at weight 0 or missing; if an override is rejected, stop and ask. Before
+  starting, check in the log of each run that the two weights really are 0. Backups to
+  `checkpoints/lift_newton_corr_nograsp/` and `checkpoints/lift_newton_corr_dr_nograsp/`. Then steps 3–4 on **T21c and
+  T21d** instead of T21a/T21b (skip a run that ends with 0.00 training success, and say so).
 - step 3, evaluate the final checkpoints, 1,024 episodes each, `--match_order newton`, `--freeze_adr` on (and the same
   for the comparison row):
   - each policy **in PhysX** (the sim-to-real number), and in its own training setup (corrected Newton, with
@@ -198,8 +219,8 @@ refers to it. Index:
   - the comparison: the original Newton Lift policy (`checkpoints/lift_newton/model_14999.pt`) in PhysX with
     `--freeze_adr` (today 0% with drifting ADR).
   Label `lift_sim2real` in `results/cross_eval.csv`, a "Sim-to-real (Lift)" table in `results/cross_eval.md`.
-- step 4: clips with `scripts/record_videos.sh` of T21a and T21b in PhysX (final checkpoint), for the video.
-- on done: "Finding 14" in `notes/log.md` (training curves: success at 2k / 4k / 8k, abnormal_robot; the PhysX numbers),
+- step 4: clips with `scripts/record_videos.sh` of T21c and T21d in PhysX (final checkpoint), for the video.
+- on done: "Finding 14" in `notes/log.md` (T21a/b: 0 success at 2k / 4k / 8k and why we changed course; T21c/d: success at 1k / 2k / 3k, abnormal_robot; the PhysX numbers),
   the README's results section, and under "Needs a human" the table. Then stop: no further training without a decision.
 - result:
 
