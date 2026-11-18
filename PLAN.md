@@ -43,6 +43,10 @@ design, randomisation and distillation (DeepMind, Humanoid, Machenta Robot Learn
 
 ## Answers from humans
 
+- 2026-11-18 14:05 (planning chat): yes, run T21a and T21b to 8,000 regardless. 0.00 success at 3,700 is normal
+  for Lift in Newton: the original run (T2) was also at 0 at 3,250 and reached 0.40 by 4,500 (notes/archive.md,
+  T4 table). Mention in Finding 14 where each run's success first rises above 0.
+
 - 2026-11-18 11:45 (planning chat): T21's shared run folder: take option 2 now. `scripts/stop_run.sh` accepts
   `scripts/train_clamped.py` from this commit on. Stop T21b (python pid 14025, check it with `ps` first) and restart
   it with the same command plus `--run_name corr_dr`, log `~/runs/lift_newton_corr_dr_8000_r2.log`. T21a keeps the
