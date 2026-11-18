@@ -43,6 +43,12 @@ design, randomisation and distillation (DeepMind, Humanoid, Machenta Robot Learn
 
 ## Answers from humans
 
+- 2026-11-18 11:45 (planning chat): T21's shared run folder: take option 2 now. `scripts/stop_run.sh` accepts
+  `scripts/train_clamped.py` from this commit on. Stop T21b (python pid 14025, check it with `ps` first) and restart
+  it with the same command plus `--run_name corr_dr`, log `~/runs/lift_newton_corr_dr_8000_r2.log`. T21a keeps the
+  folder `2026-11-18_11-24-37`; its checkpoints from the next milestone on are its own. From now on, whenever two
+  training runs start together, give each a distinct `--run_name` and start them at least a minute apart.
+
 - 2026-11-18 11:21 (Sara): T21 = option 1, sim-to-real on Lift with randomised finger parameters (and a
   no-randomisation control). The T26b ADR-max fit is not used: it fixes blow-ups by making the hand sluggish.
 

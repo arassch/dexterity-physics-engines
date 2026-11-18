@@ -5,7 +5,7 @@ set -euo pipefail
 PID="${1:?usage: stop_run.sh <pid>}"
 [[ "$PID" =~ ^[0-9]+$ ]] || { echo "not a pid: $PID" >&2; exit 1; }
 CMD=$(ps -o args= -p "$PID" 2>/dev/null || true)
-if [[ "$CMD" != *"reinforcement_learning/train.py"* && "$CMD" != *"reinforcement_learning/play.py"* && "$CMD" != *"scripts/evaluate.py"* ]]; then
+if [[ "$CMD" != *"reinforcement_learning/train.py"* && "$CMD" != *"reinforcement_learning/play.py"* && "$CMD" != *"scripts/evaluate.py"* && "$CMD" != *"scripts/train_clamped.py"* ]]; then
   echo "refusing: pid $PID is not an Isaac Lab training/eval process: ${CMD:-<no such process>}" >&2
   exit 1
 fi
