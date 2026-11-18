@@ -165,3 +165,21 @@ So the DR run is ~1.6× slower. I haven't checked why (higher armature/damping, 
 **Both runs write to `2026-11-18_11-24-37`.** They started in the same second, and rsl_rl names the folder by the
 second. Each `model_N.pt` gets overwritten by whichever run reaches N later, which is T21b, the slower one. So
 T21a's final checkpoint has to be copied as soon as T21a finishes, before T21b reaches iteration 7,999.
+
+## 2026-11-18 16:58 UTC: T21a finished at 8,000 iterations without ever lifting (server agent)
+
+T21a (Lift, corrected Newton: clamp + 8 substeps, no finger DR) ended normally (`Training time: 19578.45 seconds`,
+no Traceback, 0 resumes). Training-time numbers (with exploration noise), log `~/runs/lift_newton_corr_8000.log`:
+
+| iteration | success | abnormal_robot | ADR | mean reward | position_tracking | object position error | action std |
+|---|---|---|---|---|---|---|---|
+| 2,000 | 0.00 | 0.028 | 0.0000 | 6.03 | 0.020 | 0.70 m | 0.78 |
+| 4,000 | 0.00 | 0.030 | 0.0000 | 6.58 | 0.032 | 0.68 m | 0.94 |
+| 6,000 | 0.00 | 0.043 | 0.0000 | 7.13 | 0.022 | 0.62 m | 0.96 |
+| 7,999 | 0.00 | 0.040 | 0.0002 | 6.93 | 0.019 | 0.72 m | 0.96 |
+
+The policy reaches and touches the cube (fingers_to_object 0.52–0.66, good_finger_contact 0.31–0.41) but never lifts
+it, and the action std grew from 0.78 to 0.96 instead of shrinking. For comparison, the original Newton Lift run (T2,
+4 substeps, no clamp) was at ~0.40 success by iteration 4,500. Backed up `checkpoints/lift_newton_corr/model_7999.pt`
+and `configs/lift_newton_corr/`. (The 11-24-37 folder's `model_7999.pt` is T21a's: T21b moved to its own folder at
+iteration 368.) T21b (finger DR) is at ~4,970 / 8,000, also 0.00. Step 3 evals wait for T21b (see STATUS.md).
