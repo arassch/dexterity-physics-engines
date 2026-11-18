@@ -118,7 +118,7 @@ refers to it. Index:
   `effort_scale` (0.5–2). Flags: `--ref <npz>`, `--out <json>`, `--repeats N`.
 
 ### T26b · Freeze ADR at max, then redo the reference, the repeat test and the fit · before T21
-- status: todo
+- status: running
 - model: opus
 - why (planning chat, from T26): the "call-1 effect" is most likely **ADR demotion**. The Play configs start ADR at
   `max_difficulty` (10) but don't set `promotion_only`, so `DifficultyScheduler` lowers the difficulty by 1 on every
@@ -170,3 +170,4 @@ Older notes are in `PLAN_done.md`.
 - 2026-11-17 15:56 UTC: T20 started: wrote `scripts/sysid_check.py` (step 1: step response + held-out grid search, Sara's functions imported unchanged), `evaluate.py --robot_params` and `eval.sh ... <match> fitted`; both smoke tests passed (applied values checked). Running: `sysid_check` (1,024 envs) and 3 fitted evals (Reorient P→N, Lift P→N, Reorient N→N); Lift N→N next. Newton→PhysX unchanged reuses T23's matched rows (identical setup).
 - 2026-11-17 16:03 UTC: T20 done: sysid_check and all 4 fitted evals finished without errors; wrote `results/sysid_check.md`, cross_eval.md "Fitted robot", Finding 11. T21 gate reported in STATUS.md (T21 stays `blocked`).
 - 2026-11-17 16:48 UTC: T26 measured: wrote `scripts/sysid_repeat.py`, smoke (512 envs) + full run (1,024 envs, 5 calls), `results/sysid_repeat.md`, Finding 12. Averaged refit not started (env-var command not allowed for the agent; call-1 effect needs a decision); T26 `blocked`.
+- 2026-11-18 10:45 UTC: T26b steps 1, 2, 3.1, 3.2 and 4 were already committed (51e3ea1). Started step 3.3: `sysid_fit.py --repeats 4` with ADR frozen (`sysid_fit_adrmax2`; the first launch failed on a relative `--ref` path).
