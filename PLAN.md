@@ -168,7 +168,7 @@ refers to it. Index:
 
 ### T21 · Sim-to-real on Lift: train in corrected Newton, with and without randomised fingers, deploy in PhysX
 - status: running
-- run_folder: `2026-11-18_11-24-37` (T21a and T21b share it, see RUNS.md #16–17); logs `~/runs/lift_newton_corr_8000.log`, `~/runs/lift_newton_corr_dr_8000.log`
+- run_folder: T21a `2026-11-18_11-24-37` (log `~/runs/lift_newton_corr_8000.log`); T21b `2026-11-18_11-46-21_corr_dr` (restarted, log `~/runs/lift_newton_corr_dr_8000_r2.log`; see RUNS.md #16–18)
 - model: opus
 - decided Wed 18 Nov 11:21 (Sara, option 1 after T26b). PhysX is the "real robot". T26b showed three shared finger
   parameters can't make Newton's hand behave like PhysX's (the best blow-up count comes with a sluggish hand), so
@@ -211,3 +211,4 @@ Older notes are in `PLAN_done.md`.
 - 2026-11-18 10:45 UTC: T26b steps 1, 2, 3.1, 3.2 and 4 were already committed (51e3ea1). Started step 3.3: `sysid_fit.py --repeats 4` with ADR frozen (`sysid_fit_adrmax2`; the first launch failed on a relative `--ref` path).
 - 2026-11-18 10:58 UTC: T26b done: fit finished (`results/sysid_robot_adrmax.json`), ran `sysid_check.py --tag adrmax` (`results/sysid_check_adrmax.md`), Finding 13. T21 not started.
 - 2026-11-18 11:24 UTC: T21 step 1: added `--finger_dr` to `train_clamped.py`; 64-env 5-iteration smoke run passed (`~/runs/t21_smoke_dr.log`: values read back vary across envs, all inside the ranges). Step 2: started T21a and T21b (8,000 its). They share run folder `2026-11-18_11-24-37` (same start second); `stop_run.sh` refuses `train_clamped.py`, so I couldn't restart one. 0 resumes so far.
+- 2026-11-18 11:46 UTC: per the 11:45 answer, stopped T21b (pid 14025, at iter 368) and restarted it with `--run_name corr_dr` (folder `2026-11-18_11-46-21_corr_dr`, log `lift_newton_corr_dr_8000_r2.log`); learning iterations confirmed. T21a untouched. 0 resumes for both.

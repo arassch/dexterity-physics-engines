@@ -21,14 +21,18 @@ Output folders are under `/workspace/isaaclab/logs/rsl_rl/dexsuite_kuka_allegro/
 | 13 | Lift | PhysX | 5 (T22 step 0 check, `--override env.rewards.action_l2.weight=0`) | `2026-11-16_12-44-30` | Mon 12:44 | Done, 12.19 s | Check only: `params/env.yaml` shows `action_l2` `weight: 0` |
 | 14 | Lift | PhysX | 3,000 (T22 A `noactpen`: action_l2 = action_rate_l2 = 0) | `2026-11-16_12-45-44` | Mon 12:45 | Done, 13,652 s (3.79 h), no crash | Final (iter 2999): success 0.00 (training, with exploration noise; 0.0 throughout), abnormal_robot 0.017, ADR 0.0002, mean reward 8.63, 2.33 s/iter. `checkpoints/lift_physx_noactpen/model_2999.pt`; log `~/runs/lift_physx_3000_noactpen.log` |
 | 15 | Lift | PhysX | 3,000 (T22 B `nograsp`: good_finger_contact = contact_count = 0) | `2026-11-16_12-46-44` | Mon 12:46 | Done, 12,814 s (3.56 h), no crash | Final (iter 2999): success 0.93 (training, with exploration noise), abnormal_robot 0.017, ADR 0.986, mean reward 19.05, 4.25 s/iter. `checkpoints/lift_physx_nograsp/model_2999.pt`; log `~/runs/lift_physx_3000_nograsp.log` |
-| 16 | Lift | Newton corrected (clamp + 8 substeps, T21a) | 8,000 | `2026-11-18_11-24-37` (**shared with #17**, see below) | Wed 11:24 | Running | – |
-| 17 | Lift | Newton corrected + `--finger_dr` (T21b) | 8,000 | `2026-11-18_11-24-37` (**shared with #16**) | Wed 11:24 | Running | – |
+| 16 | Lift | Newton corrected (clamp + 8 substeps, T21a) | 8,000 | `2026-11-18_11-24-37` (shared with #17 until 11:46, see below) | Wed 11:24 | Running | – |
+| 17 | Lift | Newton corrected + `--finger_dr` (T21b, first start) | 8,000 | `2026-11-18_11-24-37` (shared with #16) | Wed 11:24 | Stopped by hand at iter 368 (11:45, planning-chat decision), restarted as #18 | – |
+| 18 | Lift | Newton corrected + `--finger_dr` (T21b restart, `--run_name corr_dr`) | 8,000 | `2026-11-18_11-46-21_corr_dr` | Wed 11:46 | Running | – |
 
 Runs 16–17: `scripts/run_isaac.sh lift_newton_corr[_dr]_8000 train_clamped.py --num_substeps 8 [--finger_dr] --task
 Isaac-Dexsuite-Kuka-Allegro-Lift-v0 --headless --num_envs 512 physics=newton_mjwarp presets=cube --seed 42
 agent.max_iterations=8000`, logs `~/runs/lift_newton_corr_8000.log` / `~/runs/lift_newton_corr_dr_8000.log`. Both
 started in the same second, so they write to **one** run folder: `model_N.pt` from the slower run (#17) overwrites
 #16's. Tensorboard event files are separate (pids 14022 = #16, 14025 = #17). Next time, pass `--run_name`.
+#17 was stopped at iteration 368, so in `2026-11-18_11-24-37` `model_250.pt` (written 11:39) is #17's and
+`model_0.pt`/`model_500.pt` onward are #16's. #18 = the same command as #17 plus
+`--run_name corr_dr`, log `~/runs/lift_newton_corr_dr_8000_r2.log` (pid 19247).
 
 Runs 2–3 and 4–5 shared one GPU, so their wall-clock times are not a fair speed comparison.
 
