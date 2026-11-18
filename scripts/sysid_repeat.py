@@ -24,6 +24,7 @@ import time
 _p = argparse.ArgumentParser(add_help=False)
 _p.add_argument("--smoke", action="store_true")
 _p.add_argument("--calls", type=int, default=5)
+_p.add_argument("--tag", type=str, default="", help="T26b: output results/sysid_repeat_<tag>.{md,json}")
 _own, _rest = _p.parse_known_args()
 sys.argv = [sys.argv[0]] + _rest
 
@@ -35,8 +36,9 @@ from sysid_harness import run_with_harness  # noqa: E402
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 FIT_JSON = os.path.join(REPO, "results", "sysid_robot.json")
 CHECK_JSON = os.path.join(REPO, "results", "sysid_check.json")
-OUT_MD = os.path.join(REPO, "results", "sysid_repeat.md")
-OUT_JSON = os.path.join(REPO, "results", "sysid_repeat.json")
+_sfx = f"_{_own.tag}" if _own.tag else ""
+OUT_MD = os.path.join(REPO, "results", f"sysid_repeat{_sfx}.md")
+OUT_JSON = os.path.join(REPO, "results", f"sysid_repeat{_sfx}.json")
 if _own.smoke:
     OUT_MD = os.path.expanduser("~/runs/sysid_repeat_smoke.md")
     OUT_JSON = os.path.expanduser("~/runs/sysid_repeat_smoke.json")
@@ -87,13 +89,16 @@ def run(h):
 
     scores = np.zeros((_own.calls, C, B, len(KEYS)))
     abc = np.zeros((_own.calls, C, B, 3), int)
+    abn = np.zeros((_own.calls, C, B), int)
     level = None
     same_in_call = {}   # (call, c, b) -> (joint_pos equal to block 0, reset_step equal to block 0)
     same_across = {}    # (call, c, b) -> equal to call 0, same block
     first = None
+    adr_calls = []
     for call in range(_own.calls):
         t0 = time.time()
         out = h.rollout(params)
+        adr_calls.append(out["adr"])
         if level is None:
             level = score_candidate(out, block_envs(0, 0), out["finger"])["level"]
         for c in range(C):
@@ -104,6 +109,7 @@ def run(h):
                 scores[call, c, b] = [float(s[k]) for k in KEYS]
                 valid = ~out["physx_reset"][e]
                 abc[call, c, b] = [int((out["reset"][e, si] & valid[:, si]).sum()) for si in range(3)]
+                abn[call, c, b] = int((out["abnormal"][e] & valid).sum())  # T26b: resets by abnormal_robot only
                 same_in_call[(call, c, b)] = (bool(np.array_equal(out["joint_pos"][e], out["joint_pos"][e0])),
                                               bool(np.array_equal(out["reset_step"][e], out["reset_step"][e0])))
                 if first is not None:
@@ -112,7 +118,8 @@ def run(h):
         if first is None:
             first = {"joint_pos": out["joint_pos"].copy(), "reset_step": out["reset_step"].copy()}
         print(f"[REPEAT] call {call + 1}/{_own.calls} in {time.time() - t0:.0f} s; blow-ups per block: "
-              + "; ".join(f"{cands[c][0]}: {scores[call, c, :, 0].astype(int).tolist()}" for c in range(C)), flush=True)
+              + "; ".join(f"{cands[c][0]}: {scores[call, c, :, 0].astype(int).tolist()}" for c in range(C))
+              + " | of which abnormal_robot: " + "; ".join(f"{abn[call, c].tolist()}" for c in range(C)), flush=True)
         del out
 
     res = []
@@ -126,6 +133,7 @@ def run(h):
                         between_std_mean=float(v.std(axis=0).mean()),  # mean over blocks of the std over calls
                         all=stats(v.ravel()), values=v.tolist())
         r["blowups_abc"] = abc[:, c].tolist()
+        r["abnormal_robot"] = abn[:, c].tolist()
         r["identical_in_call"] = [[list(same_in_call[(k, c, b)]) for b in range(B)] for k in range(_own.calls)]
         r["identical_across_calls"] = [[list(same_across[(k, c, b)]) for b in range(B)] for k in range(1, _own.calls)]
         res.append(r)
@@ -167,14 +175,26 @@ def run(h):
                      f"{fmt(x['between_block0'], d)} | {x['between_std_mean']:.{d + 1}f} | {fmt(x['all'], d)} |")
     L += ["", "## Every block's blow-ups (rows = calls, columns = blocks)", ""]
     for r in res:
-        L.append(f"- {r['name']}: " + " · ".join("/".join(str(int(x)) for x in row) for row in r["blowups"]["values"]))
+        L.append(f"- {r['name']}: " + " · ".join("/".join(str(int(x)) for x in row) for row in r["blowups"]["values"])
+                 + "  (of which abnormal_robot: " + " · ".join("/".join(str(x) for x in row) for row in r["abnormal_robot"])
+                 + ")")
     L += ["", "## Bit-identical outputs (joint_pos and reset_step arrays)", "",
           f"- Within a call, block b vs block 1 of the same candidate: **{n_in}/{n_in_tot}** identical.",
-          f"- Across calls, the same candidate and block vs call 1: **{n_ac}/{n_ac_tot}** identical.", ""]
+          f"- Across calls, the same candidate and block vs call 1: **{n_ac}/{n_ac_tot}** identical.", "",
+          f"## ADR state at the start of each signal (freeze_adr={h.freeze_adr})", "",
+          "| call | signal | ADR mean | ADR min–max | difficulty_frac | gravity z applied (mean, min–max) |",
+          "|---|---|---|---|---|---|"]
+    for k, sts in enumerate(adr_calls):
+        for s, st in zip(("a", "b", "c"), sts):
+            g = lambda x: st.get(x, float("nan"))  # noqa: E731
+            L.append(f"| {k + 1} | {s} | {g('adr_mean'):.2f} | {g('adr_min'):.0f}–{g('adr_max'):.0f} | "
+                     f"{g('adr_frac'):.3f} | {g('g_z_mean'):.2f} ({g('g_z_min'):.2f}–{g('g_z_max'):.2f}) |")
+    L.append("")
     os.makedirs(os.path.dirname(OUT_MD), exist_ok=True)
     open(OUT_MD, "w").write("\n".join(L))
     json.dump({"num_envs": h.n, "blocks": B, "calls": _own.calls, "penalty_level": level, "keys": KEYS,
                "identical_in_call": [n_in, n_in_tot], "identical_across_calls": [n_ac, n_ac_tot],
+               "freeze_adr": h.freeze_adr, "adr": adr_calls,
                "candidates": res}, open(OUT_JSON, "w"), indent=1)
     print(f"[REPEAT] wrote {OUT_MD}, {OUT_JSON}", flush=True)
 

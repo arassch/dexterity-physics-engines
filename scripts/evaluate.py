@@ -53,6 +53,10 @@ from isaaclab_tasks.utils.hydra import hydra_task_config  # noqa: E402
 
 import cli_args  # noqa: E402  (Isaac Lab's rsl_rl/cli_args.py, found via the sys.path entry above)
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from adr_info import adr_state, freeze_adr  # noqa: E402
+from adr_info import fmt as adr_fmt  # noqa: E402
+
 with contextlib.suppress(ImportError):
     import isaaclab_tasks_experimental  # noqa: F401
 
@@ -87,6 +91,12 @@ parser.add_argument(
     help="T20 'fitted Newton' (Newton only): a sysid_robot.json (scripts/sysid_fit.py). Applies all three of: the "
     "per-physics-step finger velocity clamp, num_substeps from the json (8), and the json's `best` finger armature / "
     "damping_scale / effort_scale, re-applied after every reset (same calls as sysid_harness.py _apply_params).",
+)
+parser.add_argument(
+    "--freeze_adr",
+    action="store_true",
+    help="T26b (default off, so earlier rows stay comparable): ADR promotion_only=True, so the Play config's max "
+    "difficulty doesn't demote on failed episodes. The mean difficulty at the end is logged either way.",
 )
 cli_args.add_rsl_rl_args(parser)
 add_launcher_args(parser)
@@ -265,7 +275,13 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
                 raise RuntimeError(f"--robot_params is Newton only; physics cfg is {type(env_cfg.sim.physics)}")
             env_cfg.sim.physics.num_substeps = int(fit.get("num_substeps", 8))
 
+        if args_cli.freeze_adr:
+            freeze_adr(env_cfg)
+        with contextlib.suppress(Exception):
+            print(f"[EVAL] ADR params {env_cfg.curriculum.adr.params}, freeze_adr={args_cli.freeze_adr}")
+
         env = gym.make(args_cli.task, cfg=env_cfg, render_mode=None)
+        print(f"[EVAL] ADR at start: {adr_fmt(adr_state(env.unwrapped))}")
         if order is not None:
             _check_match_order(env.unwrapped, order)
         if fit is not None:
@@ -350,6 +366,12 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
         }
         if args_cli.robot_params:  # recorded in the presets column (no new CSV column: the header isn't rewritten)
             row["presets"] = f"{PRESET_ARGS} robot_params={os.path.basename(args_cli.robot_params)}"
+        adr_end = adr_state(env.unwrapped)
+        print(f"[EVAL] ADR at end: {adr_fmt(adr_end)}")
+        if args_cli.freeze_adr:
+            row["presets"] += " freeze_adr"
+        if "adr_mean" in adr_end:  # T26b: mean ADR difficulty at the end of the eval, also in the presets column
+            row["presets"] += f" adr_end={adr_end['adr_mean']:.2f} g_end={adr_end.get('g_z_mean', float('nan')):.2f}"
         for name, count in sorted(terminations.items()):
             row[f"term_{name}"] = round(count / episodes, 4) if episodes else ""
 

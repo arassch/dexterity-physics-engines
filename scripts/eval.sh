@@ -20,6 +20,10 @@ TRAIN="${2:?train engine}"; EVAL="${3:?eval engine}"; CKPT="${4:?checkpoint}"; E
 # T20: optional last argument `fitted` (after the match engine) = "fitted Newton" (evaluate.py --robot_params
 # results/sysid_robot.json; label <task>_fitted, log name ..._fitted). E.g.
 #   scripts/eval.sh reorient physx newton <ckpt> 1024 physx fitted
+# T26b: optional very last argument `frozen` = evaluate.py --freeze_adr (ADR stays at the Play config's max; label and
+# log name get a _frozen suffix). E.g.  scripts/eval.sh reorient physx newton <ckpt> 1024 physx fitted frozen
+FROZEN=0
+if [[ "${@: -1}" == "frozen" ]] && (( $# >= 5 )); then FROZEN=1; set -- "${@:1:$(($# - 1))}"; fi
 FITTED=0
 if [[ "${@: -1}" == "fitted" ]] && (( $# >= 6 )); then FITTED=1; set -- "${@:1:$(($# - 1))}"; fi
 MATCH=""
@@ -52,6 +56,7 @@ if (( FITTED )); then
   LABEL="${TASK_SHORT}_fitted"; NAME="eval_${TASK_SHORT}_${TRAIN}_in_${EVAL}_fitted"
   MATCH_ARGS+=(--robot_params "$REPO/results/sysid_robot.json")
 fi
+if (( FROZEN )); then LABEL="${LABEL}_frozen"; NAME="${NAME}_frozen"; MATCH_ARGS+=(--freeze_adr); fi
 if (( SMOKE )); then NUM_ENVS=16; EPISODES=32; CSV="$REPO/results/cross_eval_smoke.csv"; NAME="${NAME}_smoke"; fi
 
 mkdir -p "$RUN_DIR" "$REPO/results"

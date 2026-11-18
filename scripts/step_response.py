@@ -38,6 +38,10 @@ import isaaclab_tasks  # noqa: F401
 from isaaclab_tasks.utils import add_launcher_args, launch_simulation, setup_preset_cli
 from isaaclab_tasks.utils.hydra import hydra_task_config
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from adr_info import adr_state, freeze_adr  # noqa: E402
+from adr_info import fmt as adr_fmt  # noqa: E402
+
 with contextlib.suppress(ImportError):
     import isaaclab_tasks_experimental  # noqa: F401
 
@@ -66,6 +70,10 @@ parser.add_argument("--no_self_collision", action="store_true",
                          "Newton's USD resolver falls back to it).")
 parser.add_argument("--num_substeps", type=int, default=None,
                     help="T25b test 3: Newton solver substeps per physics step (task default 2). Newton only.")
+parser.add_argument("--freeze_adr", dest="freeze_adr", action="store_true", default=True,
+                    help="T26b (default on): ADR promotion_only=True, so the difficulty never demotes")
+parser.add_argument("--no_freeze_adr", dest="freeze_adr", action="store_false",
+                    help="T18-T25b behaviour: ADR demotes by 1 on every failed reset")
 add_launcher_args(parser)
 args_cli, remaining_args = setup_preset_cli(parser)
 sys.argv = [sys.argv[0]] + remaining_args
@@ -89,6 +97,9 @@ def main(env_cfg: ManagerBasedRLEnvCfg, agent_cfg):
         if args_cli.adr == "zero":
             env_cfg.curriculum.adr.params["init_difficulty"] = 0
         adr_d = env_cfg.curriculum.adr.params["init_difficulty"]
+        if args_cli.freeze_adr:
+            freeze_adr(env_cfg)
+        print(f"[STEP] ADR params {env_cfg.curriculum.adr.params}, freeze_adr={args_cli.freeze_adr}")
         for name in ROBOT_RANDOMISATION_EVENTS:
             setattr(env_cfg.events, name, None)
         if args_cli.no_self_collision:
@@ -164,8 +175,13 @@ def main(env_cfg: ManagerBasedRLEnvCfg, agent_cfg):
 
         tm.compute = compute_and_record
 
+        adr_log = {}
+
         def run(signal_fn, tag):
             reset_all()
+            st = adr_state(u)
+            adr_log[tag] = st
+            print(f"[STEP] signal {tag} start: {adr_fmt(st)}", flush=True)
             sub_rec.clear()
             rec = {"joint_pos": [], "joint_vel": [], "target": [], "reset": [], "pre_joint_pos": [],
                    "pre_joint_vel": []}
@@ -234,6 +250,10 @@ def main(env_cfg: ManagerBasedRLEnvCfg, agent_cfg):
             res.update(run(lambda k: c_targets[k], "c"))
             res["c_trace_env"] = src
         res["adr_difficulty"] = np.array(adr_d)
+        res["freeze_adr"] = np.array(args_cli.freeze_adr)
+        for tag, st in adr_log.items():
+            for k, v in st.items():
+                res[f"{tag}_adr_{k}"] = np.array(v)
         res["clamp_vel"] = np.array(args_cli.clamp_vel)
         if args_cli.clamp_vel:
             print(f"[STEP] clamp calls {n_clamped[0]}, joint-samples clipped {n_clamped[1]}")

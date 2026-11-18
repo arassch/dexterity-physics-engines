@@ -56,3 +56,25 @@ Within call = the 4 blocks of call 1 (mean ± std, min–max); mean within std =
 
 - Within a call, block b vs block 1 of the same candidate: **0/60** identical.
 - Across calls, the same candidate and block vs call 1: **0/64** identical.
+
+## ADR drift (T26b step 1, added 2026-11-17)
+
+Same script and setup, run again with ADR **not** frozen (`--no_freeze_adr --calls 2 --tag drift`, 1,024 envs; full
+output `results/sysid_repeat_drift.md`). ADR difficulty (`DifficultyScheduler.current_adr_difficulties`) and the
+gravity applied in Newton (`model.gravity`, per world), read at the start of every signal after the reset:
+
+| call | signal | ADR mean | ADR min–max | gravity z |
+|---|---|---|---|---|
+| 1 | a | 8.00 | 8–8 | −7.85 |
+| 1 | b | 6.84 | 5–7 | −6.71 |
+| 1 | c | 5.71 | 3–6 | −5.60 |
+| 2 | a | 4.49 | 2–5 | −4.41 |
+| 2 | b | 3.49 | 1–4 | −3.42 |
+| 2 | c | 2.48 | 0–3 | −2.44 |
+
+The difficulty starts at 10 (Play config) and loses 1 on every reset without success: 2 resets before the first signal
+(env construction + the harness's first `u.reset()`), then 1 per signal reset, plus 1 per mid-signal reset in that
+env. Gravity follows the *mean* difficulty. Blow-ups per block: call 1 default 34/26/24/25, full fit 31/41/35/28;
+call 2 default 6/6/4/4, full fit 5/5/4/6 (the same pattern as T26). The PhysX reference `t19_ref_physx.npz` drifted
+the same way (its log: gravity −5.79 after signal c). With ADR frozen (`--freeze_adr`, now the default) the difficulty
+stays at 10 and gravity at −9.81 in every signal and every call: see `results/sysid_repeat_adrmax.md`.

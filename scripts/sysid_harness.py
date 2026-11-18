@@ -46,6 +46,10 @@ import isaaclab_tasks  # noqa: F401
 from isaaclab_tasks.utils import add_launcher_args, launch_simulation, setup_preset_cli
 from isaaclab_tasks.utils.hydra import hydra_task_config
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from adr_info import adr_state, freeze_adr  # noqa: E402
+from adr_info import fmt as adr_fmt  # noqa: E402
+
 with contextlib.suppress(ImportError):
     import isaaclab_tasks_experimental  # noqa: F401
 
@@ -68,6 +72,10 @@ parser.add_argument("--seed", type=int, default=42)
 parser.add_argument("--check", action="store_true", help="roll out default params, print RMS error and resets")
 parser.add_argument("--repeats", type=int, default=0, help="sysid_fit.py: blocks of 64 envs per candidate (0 = env SYSID_REPEATS or 1)")
 parser.add_argument("--out", type=str, default="", help="sysid_fit.py: output json (default results/sysid_robot.json)")
+parser.add_argument("--freeze_adr", dest="freeze_adr", action="store_true", default=True,
+                    help="T26b (default on): ADR promotion_only=True, so the difficulty stays at max (no demotion)")
+parser.add_argument("--no_freeze_adr", dest="freeze_adr", action="store_false",
+                    help="T26/T19 behaviour: ADR demotes on every failed reset (gravity drifts to 0)")
 add_launcher_args(parser)
 args_cli, remaining_args = setup_preset_cli(parser)
 sys.argv = [sys.argv[0]] + remaining_args
@@ -139,6 +147,7 @@ class Harness:
 
         self.clamp = clamp
         self.clamp_mode = args_cli.clamp_mode
+        self.freeze_adr = args_cli.freeze_adr
         self.vlim = _t(self.robot.data.joint_vel_limits).clone().float()
         fmask = torch.zeros(23, dtype=torch.bool, device=self.dev)
         fmask[self.finger_ids] = True
@@ -230,8 +239,13 @@ class Harness:
         reset_step = -np.ones((n, S), np.int64)
         abnormal = np.zeros((n, S), bool)
         ab = "abnormal_robot" if "abnormal_robot" in self.tm.active_terms else None
+        self.calls = getattr(self, "calls", 0) + 1
+        adr_log = []
         for si, s in enumerate(SIGNALS):
             self._reset(params)
+            st = adr_state(self.u)
+            adr_log.append(st)
+            print(f"[SYSID] rollout call {self.calls} signal {s} start: {adr_fmt(st)}", flush=True)
             for k in range(T):
                 self.target[:] = self.ref[s]["target"][k]
                 _, _, term, trunc, _ = self.u.step(self.zero_action)
@@ -252,6 +266,7 @@ class Harness:
             physx_reset=np.stack([px[s]["reset"] for s in SIGNALS], 1),
             signals=SIGNALS, joint_names=self.px_names, ref_env=self.ref_env,
             finger=np.array([not nm.startswith("iiwa7") for nm in self.px_names]),
+            adr=adr_log,
         )
 
 
@@ -285,7 +300,9 @@ def run_with_harness(callback, num_envs=None):
                 setattr(env_cfg.events, name, None)
             assert hasattr(env_cfg.sim.physics, "num_substeps"), f"Newton only: {type(env_cfg.sim.physics)}"
             env_cfg.sim.physics.num_substeps = args_cli.num_substeps
-            print(f"[SYSID] ADR init_difficulty={env_cfg.curriculum.adr.params['init_difficulty']}, "
+            if args_cli.freeze_adr:
+                freeze_adr(env_cfg)
+            print(f"[SYSID] ADR params {env_cfg.curriculum.adr.params}, freeze_adr={args_cli.freeze_adr}, "
                   f"num_substeps={args_cli.num_substeps}, clamp={not args_cli.no_clamp}")
             env = gym.make(TASK, cfg=env_cfg, render_mode=None)
             h = Harness(env, args_cli.ref, args_cli.num_substeps, clamp=not args_cli.no_clamp)
