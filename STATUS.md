@@ -22,7 +22,8 @@ noise. Mean reward: T21a 6.69 (was 7.09 at 2,216), T21b 5.25.
 ## Needs a human
 - Git permissions: in this wake-up, `git pull --rebase` refused to run because the working tree had uncommitted
   changes (the unpushed 12:52 STATUS.md), and `git stash` isn't in the allowed tools. I commit STATUS.md first and
-  then pull. If this STATUS.md isn't on `main`, the commit or push was refused too.
+  then pull. That worked: add/commit/pull/push each succeed when run as single commands (the 12:52 refusals were
+  probably chained commands). No action needed unless it fails again.
 - T21a has 0.00 success after 3,700 of 8,000 iterations. Should it run to 8k regardless? (Default: yes, no change.)
 - T21b runs ~1.6× slower than T21a (3.9 vs 2.5 s/it). I haven't looked into why.
 - Still open from before: T22 A/B surprise (Finding 6); the 4-vs-8 substep call is close. Sara: set T19 `done` when
