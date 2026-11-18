@@ -101,3 +101,52 @@ unchanged. Blow-ups per 64-env block (calls separated by "·", the 4 blocks insi
 - Not known: why call 1 differs (state left by env construction or the first `u.reset()`, ADR or curriculum state,
   graph capture, warm-start?). It isn't explained yet. The penalty level, and so every loss in T19/T20, came from a
   call-1 rollout.
+
+## 2026-11-18 10:58 UTC: Finding 13, the "call-1 effect" was ADR demotion (gravity drifting to 0); with ADR frozen the fit changes (T26b, server agent)
+
+**Mechanism.** The Play configs start ADR at `max_difficulty` 10 without `promotion_only`, so `DifficultyScheduler`
+lowers the difficulty by 1 on every reset of an env that didn't succeed. With the cube parked nothing succeeds.
+Difficulty scales `variable_gravity` (0 → −9.81) and the observation noises.
+
+**Evidence** (`results/sysid_repeat.md` "ADR drift", `results/sysid_repeat_drift.md`): unfrozen, ADR mean / gravity
+at the start of each signal: call 1 a 8.00 / −7.85, b 6.84 / −6.71, c 5.71 / −5.60; call 2 a 4.49 / −4.41,
+b 3.49 / −3.42, c 2.48 / −2.44. With `--freeze_adr` (`promotion_only=True`): 10.00 / −9.81 in every signal of all
+5 calls (`results/sysid_repeat_adrmax.md`). The old PhysX reference `t19_ref_physx.npz` drifted the same way
+(gravity −5.79 after signal c).
+
+**Repeat test with ADR frozen** (1,024 envs, 4 candidates × 4 blocks of 64, 5 calls; blow-ups per block, mean ± std
+over 20 blocks): default 62.6 ± 4.4, T19 fit 54.5 ± 5.2, T20 train best 54.0 ± 4.7, "0 in T19/T20" 52.3 ± 6.6.
+There's no call effect any more: within-call std ≈ between-call std ≈ 4–5. Gravity adds a lot of blow-ups: with no
+gravity (T26, calls ≥ 3) these were 5 / 0 / 5 / 0.
+
+**Refit with ADR frozen** (`sysid_fit.py --repeats 4`, ref `t19_ref_physx_adrmax.npz`, `results/sysid_robot_adrmax.json`,
+log `~/runs/sysid_fit_adrmax2.log`):
+
+| | armature | damping_scale | effort_scale | blow-ups / 64 (mean ± std of 4) | loss |
+|---|---|---|---|---|---|
+| default | 0.0100 | 1.000 | 1.000 | 65.5 ± 5.9 | 0.649 |
+| old fit (T19, drifted ADR) | 0.0131 | 1.149 | 1.591 | (repeat test: 54.5 ± 5.2) | (0.586) |
+| ADR-max fit | 0.0923 | 0.545 | 1.206 | 34.5 ± 6.0 | 1.244 |
+| lowest loss in the coarse grid | 0.0100 | 1.741 | 1.149 | 46.0 ± 5.2 | 0.522 |
+
+- `choose_best` ranks by blow-ups first, so the new fit buys fewer blow-ups with a much worse tracking loss (1.24 vs
+  0.65 for the default). Armature is near its upper bound (0.1), damping near its lower bound (0.5).
+- The top candidates by blow-ups are within one std of each other (≈ 6), so the winner is partly chosen by noise even
+  with 4 repeats.
+
+**sysid_check with ADR frozen** (`results/sysid_check_adrmax.md`): step response (a), mean over 14 joints: rise time
+PhysX 0.086 s, default 0.083 s, ADR-max fit 0.199 s; overshoot 38.6 % / 47.5 % / 89.6 %; steady-state error
+0.002 / 0.018 / 0.090. So the fitted robot is much slower and overshoots more than PhysX: it tracks worse than the
+default. Held-out episodes (20 ref envs, max 60): default loss 0.627, 18 blow-ups; fit 1.293, 16; train-best
+(0.0398, ×2.64, ×0.871) 0.933, 15. The blow-up gain on held-out data (18 → 16) is within the noise, and the train-best
+point is far from the full fit: the three parameters aren't identifiable from these signals.
+
+**Evals** (`evaluate.py --freeze_adr`, Reorient PhysX policy, `results/cross_eval.csv`): PhysX → fitted Newton (old
+fit) 0.29 % frozen vs 0.10 % drifting; PhysX → PhysX 51.0 % vs 51.5 %. The drift barely changes these cells.
+
+**What it affects.** Every open-loop run through `sysid_harness.py` / `step_response.py` / `sysid_repeat.py` with the
+Play config before `--freeze_adr` (T19, T20 step 1, T26, and the `t19_ref_physx.npz` reference) ran with a drifting
+gravity: −7.9 at the first signal, falling towards 0 over later calls. Earlier step-response tasks (T18, T25, T25b)
+probably drifted the same way if they reset several times, but I haven't checked them one by one. Finding 12's "call-1 effect" is this drift and not a simulator artifact. T19's
+fit was scored mostly at near-zero gravity. The closed-loop cross-eval numbers (T6, T13, T20, T23) hardly change
+(the two cells above).

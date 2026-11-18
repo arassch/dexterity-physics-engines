@@ -118,7 +118,7 @@ refers to it. Index:
   `effort_scale` (0.5–2). Flags: `--ref <npz>`, `--out <json>`, `--repeats N`.
 
 ### T26b · Freeze ADR at max, then redo the reference, the repeat test and the fit · before T21
-- status: running
+- status: done
 - model: opus
 - why (planning chat, from T26): the "call-1 effect" is most likely **ADR demotion**. The Play configs start ADR at
   `max_difficulty` (10) but don't set `promotion_only`, so `DifficultyScheduler` lowers the difficulty by 1 on every
@@ -151,7 +151,11 @@ refers to it. Index:
 - on done: "Finding 13" in `notes/log.md` (the mechanism, the evidence, which earlier results it affects and how),
   and in STATUS.md under "Needs a human": old fit vs ADR-max fit, blow-ups default vs fit with ADR frozen, and the two
   eval cells. Don't start T21.
-- result:
+- result: drift confirmed (ADR 10 → 8 → 2.5 by call 2, signal c; gravity −7.85 → −2.44); frozen: 10 / −9.81 throughout.
+  Repeat test (frozen): no call effect, block std ≈ 4–5; default 62.6, old fit 54.5 blow-ups/64. ADR-max fit
+  (`results/sysid_robot_adrmax.json`): armature 0.0923, damping ×0.545, effort ×1.206, 34.5 ± 6.0 vs default 65.5 ± 5.9
+  blow-ups, but loss 1.24 vs 0.65; check: rise 0.199 s vs PhysX 0.086 s, overshoot 90 % vs 39 %, held-out blow-ups 16
+  vs 18. Evals frozen vs drifting: P→fitted N 0.29 % vs 0.10 %, P→P 51.0 % vs 51.5 %. Finding 13.
 
 ### T21 · Gate: stop and ask
 - status: blocked
@@ -171,3 +175,4 @@ Older notes are in `PLAN_done.md`.
 - 2026-11-17 16:03 UTC: T20 done: sysid_check and all 4 fitted evals finished without errors; wrote `results/sysid_check.md`, cross_eval.md "Fitted robot", Finding 11. T21 gate reported in STATUS.md (T21 stays `blocked`).
 - 2026-11-17 16:48 UTC: T26 measured: wrote `scripts/sysid_repeat.py`, smoke (512 envs) + full run (1,024 envs, 5 calls), `results/sysid_repeat.md`, Finding 12. Averaged refit not started (env-var command not allowed for the agent; call-1 effect needs a decision); T26 `blocked`.
 - 2026-11-18 10:45 UTC: T26b steps 1, 2, 3.1, 3.2 and 4 were already committed (51e3ea1). Started step 3.3: `sysid_fit.py --repeats 4` with ADR frozen (`sysid_fit_adrmax2`; the first launch failed on a relative `--ref` path).
+- 2026-11-18 10:58 UTC: T26b done: fit finished (`results/sysid_robot_adrmax.json`), ran `sysid_check.py --tag adrmax` (`results/sysid_check_adrmax.md`), Finding 13. T21 not started.
