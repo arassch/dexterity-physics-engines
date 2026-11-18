@@ -43,6 +43,9 @@ design, randomisation and distillation (DeepMind, Humanoid, Machenta Robot Learn
 
 ## Answers from humans
 
+- 2026-11-18 11:21 (Sara): T21 = option 1, sim-to-real on Lift with randomised finger parameters (and a
+  no-randomisation control). The T26b ADR-max fit is not used: it fixes blow-ups by making the hand sluggish.
+
 - 2026-11-17 16:42 (Sara, planning chat): T20 read. The rebase is finished and pushed (a9a0f53). Next is T26
   (repeatability), then the T21 gate; the planning chat's default for T21 is the sim-to-real Lift run (train in
   corrected Newton with randomisation around the fitted values, deploy in PhysX), decided after T26.
@@ -157,13 +160,37 @@ refers to it. Index:
   blow-ups, but loss 1.24 vs 0.65; check: rise 0.199 s vs PhysX 0.086 s, overshoot 90 % vs 39 %, held-out blow-ups 16
   vs 18. Evals frozen vs drifting: P→fitted N 0.29 % vs 0.10 %, P→P 51.0 % vs 51.5 %. Finding 13.
 
-### T21 · Gate: stop and ask
-- status: blocked
-- after T20, write under "Needs a human" in STATUS.md: the T20 numbers, hours and $ used since 15 Nov, and the hours left.
-  The planning chat then decides the next runs. The default is now the **sim-to-real run on Lift: train in calibrated
-  Newton (512 envs, ~8,000 iterations), then evaluate in PhysX**, compared with the uncalibrated Newton policy in PhysX.
-  Teacher–student on Lift and the robustness heatmap come after, budget allowing. Don't start any training before that
-  decision.
+### T21 · Sim-to-real on Lift: train in corrected Newton, with and without randomised fingers, deploy in PhysX
+- status: todo
+- model: opus
+- decided Wed 18 Nov 11:21 (Sara, option 1 after T26b). PhysX is the "real robot". T26b showed three shared finger
+  parameters can't make Newton's hand behave like PhysX's (the best blow-up count comes with a sluggish hand), so
+  instead of trusting one fitted point we **randomise** the finger parameters during training (domain randomisation),
+  the standard approach when system identification can't pin the parameters down.
+- requires: nothing else on the GPU. The two training runs may run at the same time (the 2-run limit).
+- step 1, code (in `scripts/train_clamped.py`, no change to rewards or the task config): add `--finger_dr` that, on every
+  reset of an env, samples one armature, damping scale and effort scale **per env** (shared by its 16 finger joints)
+  and writes them with the same calls as `sysid_harness.py` (`_apply_params`): armature log-uniform 0.01–0.05,
+  damping_scale log-uniform 0.75–2.0, effort_scale log-uniform 1.0–2.0 (all relative to the nominal values; the
+  defaults 0.01 / 1 / 1 are inside, the sluggish T26b point is not). Print the sampled ranges once, and check on a
+  5-iteration smoke run that the written values vary across envs and stay inside the ranges.
+- step 2, train (Lift, 512 envs, seed 42, `presets=cube`, **8,000 iterations**, Newton, the fixed corrections: clamp
+  + `--num_substeps 8`; normal training ADR, not frozen):
+  - **T21a**: corrected Newton, no randomisation (`train_clamped.py ... --num_substeps 8`)
+  - **T21b**: corrected Newton + `--finger_dr`
+  Start both together (about 1.3 s/iteration alone at 8 substeps, so roughly 3–5 h side by side). Same crash policy
+  and backups as other training runs (`checkpoints/lift_newton_corr/`, `checkpoints/lift_newton_corr_dr/`).
+- step 3, evaluate the final checkpoints, 1,024 episodes each, `--match_order newton`, `--freeze_adr` on (and the same
+  for the comparison row):
+  - each policy **in PhysX** (the sim-to-real number), and in its own training setup (corrected Newton, with
+    `--finger_dr` for T21b) as the "home" number;
+  - the comparison: the original Newton Lift policy (`checkpoints/lift_newton/model_14999.pt`) in PhysX with
+    `--freeze_adr` (today 0% with drifting ADR).
+  Label `lift_sim2real` in `results/cross_eval.csv`, a "Sim-to-real (Lift)" table in `results/cross_eval.md`.
+- step 4: clips with `scripts/record_videos.sh` of T21a and T21b in PhysX (final checkpoint), for the video.
+- on done: "Finding 14" in `notes/log.md` (training curves: success at 2k / 4k / 8k, abnormal_robot; the PhysX numbers),
+  the README's results section, and under "Needs a human" the table. Then stop: no further training without a decision.
+- result:
 
 ## Agent notes
 
