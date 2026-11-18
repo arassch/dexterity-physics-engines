@@ -1,0 +1,60 @@
+                    Mean episode length: 327.92
+                        Mean action std: 1.00
+                   Metrics/success_rate: 0.0000
+               Episode_Reward/action_l2: -0.2566
+          Episode_Reward/action_rate_l2: -0.2193
+       Episode_Reward/fingers_to_object: 0.5617
+       Episode_Reward/position_tracking: 0.0223
+                 Episode_Reward/success: 0.0000
+       Episode_Reward/early_termination: 0.0000
+     Episode_Reward/good_finger_contact: 0.3422
+           Episode_Reward/contact_count: 0.6139
+                         Curriculum/adr: 0.0002
+     Metrics/object_pose/position_error: 0.7404
+  Metrics/object_pose/orientation_error: 2.4081
+           Episode_Termination/time_out: 0.8610
+Episode_Termination/object_out_of_bound: 0.1179
+     Episode_Termination/abnormal_robot: 0.0211
+--------------------------------------------------------------------------------
+                         Iteration time: 2.46s
+                           Time elapsed: 05:09:57
+                                    ETA: 02:53:01
+
+################################################################################
+                          Learning iteration 5134/8000
+
+                               Run name: corr_dr
+                            Total steps: 84131840
+                       Steps per second: 6406
+                        Collection time: 2.452s
+                          Learning time: 0.105s
+                        Mean value loss: 0.0121
+                    Mean surrogate loss: -0.0197
+                      Mean entropy loss: 32.2129
+                            Mean reward: 6.70
+                    Mean episode length: 333.49
+                        Mean action std: 1.00
+                   Metrics/success_rate: 0.0000
+               Episode_Reward/action_l2: -0.2491
+          Episode_Reward/action_rate_l2: -0.2099
+       Episode_Reward/fingers_to_object: 0.5716
+       Episode_Reward/position_tracking: 0.0212
+                 Episode_Reward/success: 0.0000
+       Episode_Reward/early_termination: -0.0002
+     Episode_Reward/good_finger_contact: 0.3524
+           Episode_Reward/contact_count: 0.6222
+                         Curriculum/adr: 0.0002
+     Metrics/object_pose/position_error: 0.6384
+  Metrics/object_pose/orientation_error: 2.3288
+           Episode_Termination/time_out: 0.8602
+Episode_Termination/object_out_of_bound: 0.1201
+     Episode_Termination/abnormal_robot: 0.0197
+--------------------------------------------------------------------------------
+                         Iteration time: 2.56s
+                           Time elapsed: 05:09:59
+                                    ETA: 02:52:57
+
+Terminated
+There was an error running python
+[ERROR] Command failed with code 1: "/workspace/isaaclab/_isaac_sim/python.sh /root/dexterity-physics-engines/scripts/train_clamped.py --num_substeps 8 --finger_dr --task Isaac-Dexsuite-Kuka-Allegro-Lift-v0 --headless --num_envs 512 physics=newton_mjwarp presets=cube --seed 42 agent.max_iterations=8000 --run_name corr_dr"
+There was an error running python

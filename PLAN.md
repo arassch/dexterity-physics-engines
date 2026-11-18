@@ -178,7 +178,7 @@ refers to it. Index:
 
 ### T21 · Sim-to-real on Lift: train in corrected Newton, with and without randomised fingers, deploy in PhysX
 - status: running
-- run_folder: T21a `2026-11-18_11-24-37` (log `~/runs/lift_newton_corr_8000.log`); T21b `2026-11-18_11-46-21_corr_dr` (restarted, log `~/runs/lift_newton_corr_dr_8000_r2.log`; see RUNS.md #16–18)
+- run_folder: T21a `2026-11-18_11-24-37` (log `~/runs/lift_newton_corr_8000.log`); T21b `2026-11-18_11-46-21_corr_dr` (restarted, log `~/runs/lift_newton_corr_dr_8000_r2.log`; see RUNS.md #16–18); T21c `2026-11-18_17-04-21_corr_nograsp` (log `~/runs/lift_newton_corr_nograsp_3000.log`); T21d `2026-11-18_17-05-09_corr_dr_nograsp` (log `~/runs/lift_newton_corr_dr_nograsp_3000.log`)
 - model: opus
 - decided Wed 18 Nov 11:21 (Sara, option 1 after T26b). PhysX is the "real robot". T26b showed three shared finger
   parameters can't make Newton's hand behave like PhysX's (the best blow-up count comes with a sluggish hand), so
@@ -238,3 +238,4 @@ Older notes are in `PLAN_done.md`.
 - 2026-11-18 11:24 UTC: T21 step 1: added `--finger_dr` to `train_clamped.py`; 64-env 5-iteration smoke run passed (`~/runs/t21_smoke_dr.log`: values read back vary across envs, all inside the ranges). Step 2: started T21a and T21b (8,000 its). They share run folder `2026-11-18_11-24-37` (same start second); `stop_run.sh` refuses `train_clamped.py`, so I couldn't restart one. 0 resumes so far.
 - 2026-11-18 11:46 UTC: per the 11:45 answer, stopped T21b (pid 14025, at iter 368) and restarted it with `--run_name corr_dr` (folder `2026-11-18_11-46-21_corr_dr`, log `lift_newton_corr_dr_8000_r2.log`); learning iterations confirmed. T21a untouched. 0 resumes for both.
 - 2026-11-18 16:58 UTC: T21a finished normally at 8,000 (success 0.00 throughout, 0 resumes); backed up to `checkpoints/lift_newton_corr/model_7999.pt` + configs + log excerpt. T21b still running (~4,970/8,000, 0 resumes). Evals wait for T21b.
+- 2026-11-18 17:10 UTC: per the 17:05 answer, stopped T21b (pid 19261, at iter 5,134, success 0.00); backed up `checkpoints/lift_newton_corr_dr/model_5000.pt` + configs + last 60 log lines. Step 2b: smoke (64 envs, 5 its, `~/runs/t21c_smoke.log`) shows both grasp weights 0; started T21c (17:04) and T21d (17:05, `--finger_dr`), both logs show weight 0 and learning iterations. 0 resumes each.

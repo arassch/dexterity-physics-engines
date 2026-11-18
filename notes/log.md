@@ -183,3 +183,24 @@ it, and the action std grew from 0.78 to 0.96 instead of shrinking. For comparis
 4 substeps, no clamp) was at ~0.40 success by iteration 4,500. Backed up `checkpoints/lift_newton_corr/model_7999.pt`
 and `configs/lift_newton_corr/`. (The 11-24-37 folder's `model_7999.pt` is T21a's: T21b moved to its own folder at
 iteration 368.) T21b (finger DR) is at ~4,970 / 8,000, also 0.00. Step 3 evals wait for T21b (see STATUS.md).
+
+## 2026-11-18 17:10 UTC: T21b stopped (never lifted); T21c/T21d started without grasp rewards (server agent)
+
+Per Sara's 17:05 decision, T21b (corrected Newton + finger DR) was stopped at iteration 5,134 of 8,000. Training-time
+numbers (with exploration noise), log `~/runs/lift_newton_corr_dr_8000_r2.log`:
+
+| iteration | success | abnormal_robot | ADR | mean reward | iteration time |
+|---|---|---|---|---|---|
+| 2,000 | 0.00 | 0.029 | 0.0002 | 5.75 | 3.65 s (shared GPU) |
+| 4,000 | 0.00 | 0.021 | 0.0000 | 6.31 | 3.93 s (shared GPU) |
+| 5,000 | 0.00 | 0.016 | 0.0002 | 6.71 | 2.57 s (alone) |
+| 5,134 (last) | 0.00 | 0.020 | 0.0002 | 6.70 | 2.56 s (alone) |
+
+Like T21a, it touches the cube (good_finger_contact ~0.35, contact_count ~0.62) but never lifts it; action std 1.00.
+Backed up `checkpoints/lift_newton_corr_dr/model_5000.pt` (last milestone), configs, and the last 60 log lines. Neither
+T21a nor T21b gets evaluated.
+
+Step 2b: 64-env, 5-iteration smoke run with `env.rewards.good_finger_contact.weight=0
+env.rewards.contact_count.weight=0` (`~/runs/t21c_smoke.log`). Both terms show weight 0 in the reward table and 0.0000
+in every iteration, and it ended normally (7.6 s). Started T21c at 17:04 (`2026-11-18_17-04-21_corr_nograsp`) and T21d
+(`--finger_dr`) at 17:05 (`2026-11-18_17-05-09_corr_dr_nograsp`). Both logs show the two weights at 0.

@@ -23,7 +23,9 @@ Output folders are under `/workspace/isaaclab/logs/rsl_rl/dexsuite_kuka_allegro/
 | 15 | Lift | PhysX | 3,000 (T22 B `nograsp`: good_finger_contact = contact_count = 0) | `2026-11-16_12-46-44` | Mon 12:46 | Done, 12,814 s (3.56 h), no crash | Final (iter 2999): success 0.93 (training, with exploration noise), abnormal_robot 0.017, ADR 0.986, mean reward 19.05, 4.25 s/iter. `checkpoints/lift_physx_nograsp/model_2999.pt`; log `~/runs/lift_physx_3000_nograsp.log` |
 | 16 | Lift | Newton corrected (clamp + 8 substeps, T21a) | 8,000 | `2026-11-18_11-24-37` (shared with #17 until 11:46, see below) | Wed 11:24 | Done, 19,578 s (5.44 h), no crash | Final (iter 7999): success 0.00 (training, with exploration noise; 0.00 at 2k/4k/6k/8k), abnormal_robot 0.040, ADR 0.0002, mean reward 6.93, 2.46 s/iter (shared GPU). `checkpoints/lift_newton_corr/model_7999.pt`; log `~/runs/lift_newton_corr_8000.log` |
 | 17 | Lift | Newton corrected + `--finger_dr` (T21b, first start) | 8,000 | `2026-11-18_11-24-37` (shared with #16) | Wed 11:24 | Stopped by hand at iter 368 (11:45, planning-chat decision), restarted as #18 | – |
-| 18 | Lift | Newton corrected + `--finger_dr` (T21b restart, `--run_name corr_dr`) | 8,000 | `2026-11-18_11-46-21_corr_dr` | Wed 11:46 | Running | – |
+| 18 | Lift | Newton corrected + `--finger_dr` (T21b restart, `--run_name corr_dr`) | 8,000 | `2026-11-18_11-46-21_corr_dr` | Wed 11:46 | Stopped by hand at iter 5,134 (17:05, Sara's decision: never lifted) | Last (iter 5134): success 0.00 (training, with exploration noise; 0.00 at 2k/4k/5k), abnormal_robot 0.020, ADR 0.0002, mean reward 6.70, 2.5 s/iter alone (3.7–3.9 shared). `checkpoints/lift_newton_corr_dr/model_5000.pt`; log `~/runs/lift_newton_corr_dr_8000_r2.log` |
+| 19 | Lift | Newton corrected, no grasp rewards (T21c, `--run_name corr_nograsp`) | 3,000 | `2026-11-18_17-04-21_corr_nograsp` | Wed 17:04 | Running | – |
+| 20 | Lift | Newton corrected + `--finger_dr`, no grasp rewards (T21d, `--run_name corr_dr_nograsp`) | 3,000 | `2026-11-18_17-05-09_corr_dr_nograsp` | Wed 17:05 | Running | – |
 
 Runs 16–17: `scripts/run_isaac.sh lift_newton_corr[_dr]_8000 train_clamped.py --num_substeps 8 [--finger_dr] --task
 Isaac-Dexsuite-Kuka-Allegro-Lift-v0 --headless --num_envs 512 physics=newton_mjwarp presets=cube --seed 42
@@ -33,6 +35,11 @@ started in the same second, so they write to **one** run folder: `model_N.pt` fr
 #17 was stopped at iteration 368, so in `2026-11-18_11-24-37` `model_250.pt` (written 11:39) is #17's and
 `model_0.pt`/`model_500.pt` onward are #16's. #18 = the same command as #17 plus
 `--run_name corr_dr`, log `~/runs/lift_newton_corr_dr_8000_r2.log` (pid 19247).
+
+Runs 19–20 (T21 step 2b): `scripts/run_isaac.sh lift_newton_corr[_dr]_nograsp_3000 train_clamped.py --num_substeps 8
+[--finger_dr] --task Isaac-Dexsuite-Kuka-Allegro-Lift-v0 --headless --num_envs 512 physics=newton_mjwarp presets=cube
+--seed 42 agent.max_iterations=3000 --run_name corr[_dr]_nograsp env.rewards.good_finger_contact.weight=0
+env.rewards.contact_count.weight=0`. Both logs' reward tables show the two terms at weight 0. Started 48 s apart.
 
 Runs 2–3 and 4–5 shared one GPU, so their wall-clock times are not a fair speed comparison.
 
