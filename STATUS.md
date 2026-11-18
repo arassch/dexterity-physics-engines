@@ -1,30 +1,35 @@
 # Status
-Updated: 2026-11-18 19:05 UTC by the server agent (wake-up: state changed, T21c finished)
+Updated: 2026-11-18 19:58 UTC by the server agent (wake-up: state changed, T21d finished)
 
-Instance hours since 15 Nov 16:00 UTC: **≈ 16.1 h ≈ $59** (estimate: 15.2 h at 18:09 plus ~0.9 h; instance up
-continuously). T21d ends in ~40–50 min, then step 3 evals. About 25 h ≈ $91 left of the $150.
+Instance hours since 15 Nov 16:00 UTC: **≈ 16.9 h ≈ $62** (estimate: 16.1 h at 19:05 plus ~0.8 h; instance up
+continuously, `uptime` 9 h 19 min at 19:47). About 24 h ≈ $88 left of the $150.
 
 ## GPU jobs
 | Task | Engine | Iteration | Success | abnormal_robot | ADR | ETA |
 |---|---|---|---|---|---|---|
-| T21c Lift, corrected Newton, no grasp rewards | Newton (clamp + 8 substeps) | **done** 3,000 / 3,000 | 0.90 final (0.00 at 1k, 0.31 at 2k) | 0.077 | 0.977 | – |
-| T21d Lift, corrected Newton + finger DR, no grasp rewards | Newton (clamp + 8 substeps + DR) | 2,095 / 3,000 | 0.12 (0.05 a few its earlier) | 0.012 | 0.004 | ~50 min (log, should drop now it's alone) |
+| T21c Lift, corrected Newton, no grasp rewards | Newton | done 3,000 | 0.90 train / **0.0% in PhysX** | 0.077 / 8.5% | 0.977 | – |
+| T21d Lift, corrected Newton + finger DR, no grasp rewards | Newton | **done** 3,000 / 3,000 | 0.92 train / **0.0% in PhysX** | 0.023 / 7.2% | 0.977 | – |
+| T21 step 4 clips (T21c, T21d in PhysX) | PhysX | recording | – | – | – | ~15 min |
 
-GPU: 1.6 GB / 46 GB. No crashes, no NaN. 0 resumes each. Training success rates include exploration noise.
+No training running. Training success rates include exploration noise.
 
 ## Since last update
-- T21c finished normally (6,903 s). Corrected Newton reaches **0.90** training success at 3,000 once the grasp rewards
-  are off (T21a, with them, stayed at 0.00 for 8,000). ADR jumped 0.02 → 0.98 between 2k and 3k; abnormal_robot rose
-  0.03 → 0.08. Backed up `checkpoints/lift_newton_corr_nograsp/model_2999.pt`, configs, log excerpt; RUNS.md #19,
-  README table, notes/log.md updated.
-- Step 3 not started yet: I'll run all T21 evals together once T21d finishes.
+- T21d finished normally (9,349 s, 0 resumes): training success 0.00 at 1k and 2k, **0.92** at 3,000;
+  abnormal_robot 0.023 (T21c 0.077), ADR 0.977, mean reward 18.85. Backed up
+  `checkpoints/lift_newton_corr_dr_nograsp/model_2999.pt`, configs, log excerpt; RUNS.md #20, README, notes/log.md.
+- T21 step 3, PhysX cells (1,024+ episodes, `--match_order newton`, `--freeze_adr`, label `lift_sim2real`):
+  **all three 0.0%** (CI 0–0.4%): T21c abnormal 8.5% / time_out 87.7%; T21d 7.2% / 90.1%; original Newton Lift
+  23.5% / 66.3%. Table in `results/cross_eval.md` "Sim-to-real (Lift)". To do this I added leading `--label`/`--tag`
+  options to `scripts/eval.sh` (smoke-tested).
+- Step 4: recording PhysX clips of T21c and T21d (`~/runs/videos/lift_newton_corr[_dr]_nograsp_policy_in_physx/`).
 
 ## Needs a human
-- Step 3 asks for label `lift_sim2real` and a "home" eval in corrected Newton (clamp + 8 substeps, `--finger_dr` for
-  T21d). `eval.sh`/`evaluate.py` have neither: the clamp + substeps only come with `--robot_params` (fitted json). My
-  plan unless told otherwise: add a small `--corrected` option (clamp + `num_substeps 8`, no fitted params) and a
-  `--finger_dr` option to `evaluate.py`/`eval.sh` reusing `train_clamped.py`'s code, plus a label override, smoke-test
-  it, then run the cells. Say so in PLAN.md if you'd rather do it differently.
-- Still open from before: T21b ran ~1.5× slower than T21a while they shared the GPU (not investigated); T22 A/B
-  surprise (Finding 6); the 4-vs-8 substep call is close. Sara: set T19 `done` when you're happy; "What I learned"
-  notes for T17, T23, T18, T25, T25b, T22, T20, T26, T26b.
+- **T21's sim-to-real result is 0.0% for every Newton-trained Lift policy in PhysX**, corrected and randomised
+  included; the corrections only cut blow-ups (23.5% → 7–9%), and most episodes now just time out. Finding 14 and
+  the README results wait until the home rows exist. T21 stays `running`.
+- Home rows still missing: `evaluate.py` can't run corrected Newton (clamp + 8 substeps) without fitted params, nor
+  `--finger_dr`. Unless PLAN.md says otherwise, next wake-up I'll add `--corrected` and `--finger_dr` to
+  `evaluate.py`/`eval.sh` (reusing `train_clamped.py`'s code), smoke-test, and run the two home cells.
+- Still open from before: T21b ran ~1.5× slower than T21a while sharing the GPU; T22 A/B surprise (Finding 6); the
+  4-vs-8 substep call. Sara: set T19 `done` when ready; "What I learned" notes for T17, T23, T18, T25, T25b, T22,
+  T20, T26, T26b.

@@ -53,6 +53,7 @@ Final training metrics, with exploration noise on (deterministic evaluation come
 | Lift, corrected Newton (clamp + 8 substeps, T21a, 8,000 iters) | Newton | 0% (final iteration, training-time; 0% throughout) | ~4% | 0.0002 | 0 |
 | Lift, corrected Newton + finger DR (T21b, stopped at 5,134 of 8,000) | Newton | 0% (last iteration, training-time; 0% throughout) | ~2% | 0.0002 | 0 |
 | Lift, corrected Newton, no grasp rewards (T21c, 3,000 iters) | Newton | 90% (final iteration, training-time) | ~8% | 0.98 | 0 |
+| Lift, corrected Newton + finger DR, no grasp rewards (T21d, 3,000 iters) | Newton | 92% (final iteration, training-time) | ~2% | 0.98 | 0 |
 
 **Finding so far:** at the same curriculum difficulty, Newton ends ~7× more episodes with the robot in an
 abnormal state, and diverged to NaN once. Configs differ only in the solver block (see [`notes/log.md`](notes/log.md)).

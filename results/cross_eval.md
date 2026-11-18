@@ -130,3 +130,20 @@ the presets column). The "matched" column is the T23 row with default Newton.
   default Newton (the intervals don't overlap), with `abnormal_robot` 13.6 → 3.4%. Reorient 65.6% vs 63.9% (the intervals overlap).
 - Newton → PhysX with nothing changed is identical to T23's matched rows (same checkpoints, flags and engine), so
   those rows are reused as T21's uncalibrated baseline: 0.0% in both tasks.
+
+## Sim-to-real (Lift)
+
+T21 step 3, Wed 18 Nov 19:52 UTC. Policies trained in Newton, evaluated **in PhysX** (the "real robot"), 256 envs, seed 42,
+`--match_order newton`, `--freeze_adr` (ADR 10, gravity −9.81 throughout). Label `lift_sim2real` in `cross_eval.csv`.
+
+| Policy | Trained in | Episodes | PhysX success (95% CI) | abnormal_robot | out of bound | time_out | steps |
+|---|---|---|---|---|---|---|---|
+| T21c `lift_newton_corr_nograsp/model_2999.pt` | corrected Newton, no grasp rewards | 1,050 | **0.0%** (0.0–0.4) | 8.5% | 3.8% | 87.7% | 1,440 |
+| T21d `lift_newton_corr_dr_nograsp/model_2999.pt` | corrected Newton + finger DR, no grasp rewards | 1,045 | **0.0%** (0.0–0.4) | 7.2% | 2.8% | 90.1% | 1,440 |
+| original `lift_newton/model_14999.pt` | default Newton | 1,024 | **0.0%** (0.0–0.4) | 23.5% | 10.3% | 66.3% | 1,305 |
+
+- **No policy trained in Newton lifts the cube in PhysX**, with or without the corrections and finger randomisation
+  (training-time success in Newton: 0.90 / 0.92). The corrected runs end far fewer episodes in `abnormal_robot`
+  (8.5% / 7.2% vs 23.5%), and most episodes time out, so they fail without blowing up.
+- The "home" rows (each policy in its own corrected Newton setup) are not measured yet: `evaluate.py` has no option for
+  clamp + 8 substeps without fitted parameters, or for `--finger_dr`.

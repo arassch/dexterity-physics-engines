@@ -12,6 +12,14 @@
 # Log: ~/runs/eval_<task>_<train>_in_<eval>[_smoke].log
 set -euo pipefail
 
+# T21: optional leading `--label <csv label>` and/or `--tag <log suffix>` (before `smoke`/task) override the CSV label
+# and add a suffix to the log name, so several checkpoints of one cell can run side by side. E.g.
+#   scripts/eval.sh --label lift_sim2real --tag corr_nograsp lift newton physx <ckpt> 1024 newton frozen
+LABEL_OVERRIDE=""; TAG=""
+while [[ "${1:-}" == --label || "${1:-}" == --tag ]]; do
+  case "$1" in --label) LABEL_OVERRIDE="${2:?--label needs a value}" ;; --tag) TAG="${2:?--tag needs a value}" ;; esac
+  shift 2
+done
 SMOKE=0
 if [[ "${1:-}" == "smoke" ]]; then SMOKE=1; shift; fi
 TASK_SHORT="${1:?usage: eval.sh [smoke] <lift|reorient> <train_engine> <eval_engine> <checkpoint.pt> [episodes]}"
@@ -57,6 +65,8 @@ if (( FITTED )); then
   MATCH_ARGS+=(--robot_params "$REPO/results/sysid_robot.json")
 fi
 if (( FROZEN )); then LABEL="${LABEL}_frozen"; NAME="${NAME}_frozen"; MATCH_ARGS+=(--freeze_adr); fi
+[[ -n "$LABEL_OVERRIDE" ]] && LABEL="$LABEL_OVERRIDE"
+[[ -n "$TAG" ]] && NAME="${NAME}_${TAG}"
 if (( SMOKE )); then NUM_ENVS=16; EPISODES=32; CSV="$REPO/results/cross_eval_smoke.csv"; NAME="${NAME}_smoke"; fi
 
 mkdir -p "$RUN_DIR" "$REPO/results"

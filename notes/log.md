@@ -222,3 +222,26 @@ So the same corrected physics where T21a stayed at 0.00 for 8,000 iterations rea
 0.02 to 0.98 between 2k and 3k, and abnormal_robot rose with it (0.03 → 0.08). Backed up
 `checkpoints/lift_newton_corr_nograsp/model_2999.pt`, configs, last 60 log lines. T21d (finger DR) is at ~2,095 / 3,000,
 success 0.05–0.12, ADR 0.004.
+
+## 2026-11-18 19:47 UTC: T21d finished; finger DR learns Lift too, later but to the same level (server agent)
+
+T21d (corrected Newton + `--finger_dr`, no grasp rewards, 3,000 iterations) ended normally after 9,349 s, no crash,
+0 resumes. Training-time numbers (with exploration noise), log `~/runs/lift_newton_corr_dr_nograsp_3000.log`:
+
+| iteration | success | abnormal_robot | ADR |
+|---|---|---|---|
+| 1,000 | 0.00 | 0.013 | 0.000 |
+| 2,000 | 0.00 | 0.019 | 0.000 |
+| 3,000 (2999) | 0.92 | 0.023 | 0.977 |
+
+Final mean reward 18.85, `position_tracking` 0.837, `success` term 2.43, action std 0.73, 2.52 s/iter. Compared with
+T21c, success starts later (0.00 at 2k vs 0.31; first nonzero around 2.1k) but ends at the same level (0.92 vs 0.90),
+and abnormal_robot ends about 3× lower (0.023 vs 0.077) at the same ADR (0.98). Backed up
+`checkpoints/lift_newton_corr_dr_nograsp/model_2999.pt`, configs, last 60 log lines.
+
+**Surprise: T21 step 3, both policies are 0.0% in PhysX.** 1,024+ episodes each, `--match_order newton`,
+`--freeze_adr` (ADR 10, g −9.81), `results/cross_eval.md` "Sim-to-real (Lift)": T21c 0.0% (0/1,050, CI 0–0.4%,
+abnormal_robot 8.5%, time_out 87.7%), T21d 0.0% (0/1,045, abnormal 7.2%, time_out 90.1%), original Newton Lift 0.0%
+(abnormal 23.5%, time_out 66.3%). Corrections and finger DR cut blow-ups in PhysX by ~3× but no episode succeeds.
+Added `--label`/`--tag` leading options to `scripts/eval.sh` (smoke 32 episodes passed) to label and separate these
+logs. Home rows and the clips (step 4) not done yet.
