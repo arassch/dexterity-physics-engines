@@ -150,3 +150,18 @@ gravity: −7.9 at the first signal, falling towards 0 over later calls. Earlier
 probably drifted the same way if they reset several times, but I haven't checked them one by one. Finding 12's "call-1 effect" is this drift and not a simulator artifact. T19's
 fit was scored mostly at near-zero gravity. The closed-loop cross-eval numbers (T6, T13, T20, T23) hardly change
 (the two cells above).
+
+## 2026-11-18 11:30 UTC: T21 started; finger DR smoke check; both runs share one run folder (server agent)
+
+`train_clamped.py --finger_dr` samples log-uniform values per env on every reset: armature 0.01–0.05, damping
+×0.75–2.0 and effort ×1.0–2.0 of the per-env nominal values left by the startup events. Smoke run: 64 envs,
+5 iterations (`~/runs/t21_smoke_dr.log`). Values read back from `robot.data` at reset call 1: armature 0.0106–0.0498
+(std across envs 0.0118), damping scale 0.753–1.948, effort scale 1.012–1.987, all `inside=True`. Call 2 resampled
+them (armature 0.0115–0.0493, ...). Nominal finger values: damping mean 0.125, effort 0.5, armature 0.01.
+
+Speed with both runs on the GPU, iterations ~20–50: T21a 2.1 s/it (ETA 4 h 42 min), T21b 3.0–3.5 s/it (ETA 7 h 16 min).
+So the DR run is ~1.6× slower. I haven't checked why (higher armature/damping, or the writes at each reset).
+
+**Both runs write to `2026-11-18_11-24-37`.** They started in the same second, and rsl_rl names the folder by the
+second. Each `model_N.pt` gets overwritten by whichever run reaches N later, which is T21b, the slower one. So
+T21a's final checkpoint has to be copied as soon as T21a finishes, before T21b reaches iteration 7,999.

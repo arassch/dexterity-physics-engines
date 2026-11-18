@@ -9,7 +9,8 @@ limits. This is the same per-physics-step clamp as `sysid_harness.py --clamp_mod
 Usage (always through run_isaac.sh):
   scripts/run_isaac.sh <log> train_clamped.py --num_substeps 4 --task Isaac-Dexsuite-Kuka-Allegro-Lift-v0 \
       --headless --num_envs 512 physics=newton_mjwarp presets=cube --seed 42 agent.max_iterations=50
-Own options (removed before the rest goes to train_rsl_rl.py): --num_substeps N (default 8), --no_clamp.
+Own options (removed before the rest goes to train_rsl_rl.py): --num_substeps N (default 8), --no_clamp,
+--finger_dr (T21: per-env finger armature / damping scale / effort scale, log-uniform, resampled on every reset).
 """
 
 import sys
@@ -20,7 +21,7 @@ RL_ROOT = ISAACLAB_DIR / "scripts" / "reinforcement_learning"
 
 
 def _pop_args(argv):
-    num_substeps, clamp, rest = 8, True, []
+    num_substeps, clamp, finger_dr, rest = 8, True, False, []
     i = 0
     while i < len(argv):
         if argv[i] == "--num_substeps":
@@ -31,10 +32,17 @@ def _pop_args(argv):
             num_substeps = int(argv[i].split("=", 1)[1])
         elif argv[i] == "--no_clamp":
             clamp = False
+        elif argv[i] == "--finger_dr":
+            finger_dr = True
         else:
             rest.append(argv[i])
         i += 1
-    return num_substeps, clamp, rest
+    return num_substeps, clamp, finger_dr, rest
+
+
+# T21 finger domain randomisation: (low, high), sampled log-uniform per env on every reset.
+# Armature is absolute (nominal 0.01); damping and effort are scales of the per-env nominal values.
+FINGER_DR = {"armature": (0.01, 0.05), "damping_scale": (0.75, 2.0), "effort_scale": (1.0, 2.0)}
 
 
 def _t(x):
@@ -66,8 +74,70 @@ def install_step_clamp(env):
           f"finger vel limit mean {float(vlim[:, finger_ids].mean()):.3f} rad/s")
 
 
+def install_finger_dr(env):
+    """On every reset of an env, sample (armature, damping scale, effort scale) for that env, shared by its 16 finger
+    joints, and write them with the same calls as sysid_harness.py `_apply_params` (plus env_ids)."""
+    import math
+
+    import torch
+
+    u = env.unwrapped
+    robot = u.scene["robot"]
+    dev = u.device
+    f = [i for i, nm in enumerate(robot.joint_names) if not nm.startswith("iiwa7")]
+    assert len(f) == 16, robot.joint_names
+    # Nominal values after the task's startup events (same as sysid_harness.py: per env, per finger joint).
+    nom_damping = _t(robot.data.joint_damping).clone().float()[:, f]
+    nom_effort = _t(robot.data.joint_effort_limits).clone().float()[:, f]
+    nom_arm = _t(robot.data.joint_armature).clone().float()[:, f]
+    lo = torch.tensor([math.log(FINGER_DR[k][0]) for k in FINGER_DR], device=dev)
+    hi = torch.tensor([math.log(FINGER_DR[k][1]) for k in FINGER_DR], device=dev)
+    cur = torch.zeros(u.num_envs, 3, device=dev)  # current sampled params per env
+    ncalls = [0]
+
+    def apply(env_ids):
+        ids = torch.as_tensor(env_ids, device=dev, dtype=torch.long).reshape(-1)
+        if ids.numel() == 0:
+            return
+        p = torch.exp(lo + (hi - lo) * torch.rand(ids.numel(), 3, device=dev))
+        cur[ids] = p
+        robot.write_joint_armature_to_sim_index(
+            armature=p[:, 0:1].expand(-1, len(f)).contiguous(), joint_ids=f, env_ids=ids)
+        robot.write_joint_damping_to_sim_index(
+            damping=(nom_damping[ids] * p[:, 1:2]).contiguous(), joint_ids=f, env_ids=ids)
+        robot.write_joint_effort_limit_to_sim_index(
+            limits=(nom_effort[ids] * p[:, 2:3]).contiguous(), joint_ids=f, env_ids=ids)
+        ncalls[0] += 1
+        n = ncalls[0]
+        if n <= 3 or n % 2000 == 0:
+            # Read back what is in the sim data and compare with the ranges.
+            arm = _t(robot.data.joint_armature).float()[:, f]
+            dsc = _t(robot.data.joint_damping).float()[:, f] / nom_damping.clamp_min(1e-9)
+            esc = _t(robot.data.joint_effort_limits).float()[:, f] / nom_effort.clamp_min(1e-9)
+            msg = []
+            for name, v in (("armature", arm), ("damping_scale", dsc), ("effort_scale", esc)):
+                a, b = FINGER_DR[name]
+                inside = bool(((v >= a * 0.999) & (v <= b * 1.001)).all())
+                msg.append(f"{name} min {float(v.min()):.4f} max {float(v.max()):.4f} "
+                           f"std-across-envs {float(v[:, 0].std()):.4f} inside={inside}")
+            print(f"[FINGER_DR] reset call {n} ({ids.numel()} envs) read back: " + "; ".join(msg), flush=True)
+
+    orig_reset_idx = u._reset_idx
+
+    def reset_idx_with_dr(env_ids):
+        orig_reset_idx(env_ids)
+        apply(env_ids)
+
+    u._reset_idx = reset_idx_with_dr
+    apply(torch.arange(u.num_envs, device=dev))  # all envs once, before training starts
+    print(f"[FINGER_DR] per-env log-uniform finger params on every reset: armature {FINGER_DR['armature']}, "
+          f"damping_scale {FINGER_DR['damping_scale']}, effort_scale {FINGER_DR['effort_scale']}; "
+          f"nominal armature mean {float(nom_arm.mean()):.4f}, damping mean {float(nom_damping.mean()):.4f}, "
+          f"effort mean {float(nom_effort.mean()):.4f}; {u.num_envs} envs", flush=True)
+
+
 def main():
-    num_substeps, clamp, rest = _pop_args(sys.argv[1:])
+    num_substeps, clamp, finger_dr, rest = _pop_args(sys.argv[1:])
     sys.path.insert(0, str(RL_ROOT))
     from common import import_local_module  # noqa: E402  (Isaac Lab's scripts/reinforcement_learning/common.py)
 
@@ -77,10 +147,12 @@ def main():
     def create_with_corrections(task, env_cfg, args_cli, **kw):
         assert hasattr(env_cfg.sim.physics, "num_substeps"), f"Newton only: {type(env_cfg.sim.physics)}"
         env_cfg.sim.physics.num_substeps = num_substeps
-        print(f"[CLAMP] num_substeps={num_substeps}, clamp={clamp}")
+        print(f"[CLAMP] num_substeps={num_substeps}, clamp={clamp}, finger_dr={finger_dr}")
         env = orig_create(task, env_cfg, args_cli, **kw)
         if clamp:
             install_step_clamp(env)
+        if finger_dr:
+            install_finger_dr(env)
         return env
 
     mod.create_isaaclab_env = create_with_corrections
